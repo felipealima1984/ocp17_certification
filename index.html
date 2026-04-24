@@ -681,7 +681,7 @@
 
   <div class="info-grid">
     <div class="info-item">
-      <span class="val">50</span>
+      <span class="val" id="pool-count">50</span>
       <span class="lbl">Questions</span>
     </div>
     <div class="info-item">
@@ -694,7 +694,12 @@
     </div>
   </div>
 
-  <button class="btn-start" onclick="startExam()">Start Exam →</button>
+  <div id="loading-status" style="display:none;margin-bottom:1rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted);letter-spacing:0.05em;text-align:center;">
+    Loading packs…
+  </div>
+  <button class="btn-start" id="btn-start" onclick="startExam()" disabled style="opacity:0.5;cursor:not-allowed;">
+    Loading…
+  </button>
 </div>
 
 <!-- EXAM SCREEN -->
@@ -1432,6 +1437,73 @@ list.add(<span class="str">"Java"</span>);
 ];
 
 // ═══════════════════════════════════════════════════════
+//  DYNAMIC PACK LOADER
+// ═══════════════════════════════════════════════════════
+
+// ALL_QUESTIONS already contains the 50 built-in questions.
+// loadAllPacks() will try to fetch every questions-pack-en-XX.js
+// (starting at 11) until it gets a 404, then unlock the start button.
+
+async function loadAllPacks() {
+  const statusEl   = document.getElementById('loading-status');
+  const btnEl      = document.getElementById('btn-start');
+  const countEl    = document.getElementById('pool-count');
+
+  statusEl.style.display = 'block';
+
+  let packNum = 11;
+  let loaded  = 0;
+
+  while (true) {
+    const padded = packNum.toString(); // e.g. "11", "12", ...
+    const url    = `questions-pack-en-${padded}.js`;
+
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (!res.ok) break;                  // 404 or other error → stop
+
+      const text = await res.text();
+
+      // Extract the array literal from: const QUESTIONS_PACK_EN_XX = [ ... ];
+      // We grab everything from the first '[' to the last '];'
+      const start = text.indexOf('[');
+      const end   = text.lastIndexOf('];');
+      if (start === -1 || end === -1) { packNum++; continue; }
+
+      const arrayText = text.slice(start, end + 1); // includes trailing ]
+      // eslint-disable-next-line no-eval
+      const packQuestions = eval(arrayText);
+
+      if (Array.isArray(packQuestions) && packQuestions.length > 0) {
+        ALL_QUESTIONS.push(...packQuestions);
+        loaded++;
+        countEl.textContent  = ALL_QUESTIONS.length;
+        statusEl.textContent = `Loaded ${loaded} pack${loaded > 1 ? 's' : ''} · ${ALL_QUESTIONS.length} questions total`;
+      }
+    } catch (err) {
+      // Network error (e.g. file:// local) or parse error — stop silently
+      console.warn(`Pack ${url} not loaded:`, err.message || err);
+      break;
+    }
+
+    packNum++;
+  }
+
+  // Ready — unlock the start button
+  statusEl.textContent   = loaded > 0
+    ? `✓ ${ALL_QUESTIONS.length} questions ready`
+    : '✓ Ready (built-in questions only)';
+  statusEl.style.color   = 'var(--green)';
+
+  setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+
+  btnEl.disabled         = false;
+  btnEl.style.opacity    = '1';
+  btnEl.style.cursor     = 'pointer';
+  btnEl.textContent      = 'Start Exam →';
+}
+
+// ═══════════════════════════════════════════════════════
 //  EXAM STATE
 // ═══════════════════════════════════════════════════════
 let questions = [];
@@ -1671,18 +1743,22 @@ function toggleTheme() {
   }
 }
 
-// Restore saved theme on load
+// Restore saved theme + kick off pack loader on DOMContentLoaded
 (function() {
   if (localStorage.getItem('ocp-theme') === 'light') {
     document.documentElement.classList.add('light');
-    // icons will be updated once DOM is ready
-    document.addEventListener('DOMContentLoaded', () => {
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    // Restore theme icons
+    if (localStorage.getItem('ocp-theme') === 'light') {
       const icon  = document.getElementById('theme-icon');
       const label = document.getElementById('theme-label');
       if (icon)  icon.textContent  = '🌙';
       if (label) label.textContent = 'Dark';
-    });
-  }
+    }
+    // Auto-load all question packs
+    loadAllPacks();
+  });
 })();
 
 function restart() {
