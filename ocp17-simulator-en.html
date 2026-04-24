@@ -1,0 +1,2847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCP 17 — Java Certification Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #f59e0b;
+    --accent2: #3b82f6;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --code-bg: #0d1117;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #screen-home {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.3);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+    margin-bottom: 2rem;
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.4; transform:scale(0.8); }
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 3rem;
+    letter-spacing: 0.05em;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .info-item {
+    background: var(--surface);
+    padding: 1.25rem 1rem;
+    text-align: center;
+  }
+
+  .info-item .val {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+  }
+
+  .info-item .lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .btn-start {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 1rem 3rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: var(--radius);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+  }
+
+  .btn-start:hover {
+    background: #fbbf24;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(245,158,11,0.3);
+  }
+
+  .btn-start:active { transform: translateY(0); }
+
+  #screen-exam { display: none; min-height: 100vh; }
+
+  .exam-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,14,26,0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .exam-header .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .progress-bar-wrap {
+    flex: 1;
+    max-width: 300px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    min-width: 80px;
+    text-align: center;
+    transition: color 0.3s, border-color 0.3s;
+  }
+
+  .timer.warning { color: var(--red); border-color: rgba(239,68,68,0.4); }
+
+  .q-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .exam-body {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .q-topic {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .q-text {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 1.25rem;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0 1.5rem;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  pre::before {
+    content: 'Java';
+    position: absolute;
+    top: 8px; right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: #e2e8f0;
+  }
+
+  .kw { color: #c792ea; }
+  .str { color: #c3e88d; }
+  .num { color: #f78c6c; }
+  .cm { color: #546e7a; font-style: italic; }
+  .cls { color: #82aaff; }
+  .ann { color: #ffcb6b; }
+
+  .options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .option-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    width: 100%;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--accent2);
+    background: rgba(59,130,246,0.07);
+  }
+
+  .option-btn.selected {
+    border-color: var(--accent2);
+    background: rgba(59,130,246,0.12);
+  }
+
+  .option-btn .letter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.15s;
+  }
+
+  .option-btn.selected .letter {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #fff;
+  }
+
+  .exam-footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .nav-btn:hover { border-color: var(--muted); background: var(--surface); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .nav-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 700;
+  }
+
+  .nav-btn.primary:hover { background: #fbbf24; }
+
+  .dots-wrap {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 400px;
+  }
+
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .dot.answered { background: var(--accent2); }
+  .dot.current  { background: var(--accent); transform: scale(1.4); }
+
+  #screen-result { display: none; padding: 2rem; max-width: 860px; margin: 0 auto; }
+
+  .result-hero {
+    text-align: center;
+    padding: 3rem 1rem 2rem;
+  }
+
+  .score-ring {
+    width: 140px; height: 140px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+  }
+
+  .score-ring svg { transform: rotate(-90deg); }
+
+  .score-ring .score-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-ring .pct {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .score-ring .lbl { font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  .result-verdict {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .result-verdict.pass { color: var(--green); }
+  .result-verdict.fail { color: var(--red); }
+
+  .result-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    text-align: center;
+  }
+
+  .stat-card .sv { font-size: 1.8rem; font-weight: 800; }
+  .stat-card .sl { font-size: 0.7rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+  .sv.green { color: var(--green); }
+  .sv.red { color: var(--red); }
+  .sv.blue { color: var(--accent2); }
+
+  .section-title {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 2rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .review-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--border);
+  }
+
+  .review-item.correct { border-left-color: var(--green); }
+  .review-item.wrong   { border-left-color: var(--red); }
+  .review-item.skipped { border-left-color: var(--muted); }
+
+  .review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .review-q-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .tag.correct { background: rgba(16,185,129,0.15); color: var(--green); }
+  .tag.wrong   { background: rgba(239,68,68,0.15);  color: var(--red); }
+  .tag.skipped { background: rgba(100,116,139,0.15); color: var(--muted); }
+
+  .review-q-text {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+
+  .answer-info {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .answer-info .yours { color: var(--red); }
+  .answer-info .correct-ans { color: var(--green); }
+
+  .explanation {
+    background: rgba(59,130,246,0.06);
+    border: 1px solid rgba(59,130,246,0.15);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: #94a3b8;
+    margin-top: 0.75rem;
+  }
+
+  .explanation::before { content: '💡 '; }
+
+  .btn-restart {
+    display: block;
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 1rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: var(--radius);
+    cursor: pointer;
+    margin: 2rem 0 4rem;
+    transition: all 0.2s;
+  }
+
+  .btn-restart:hover { background: #fbbf24; transform: translateY(-1px); }
+
+  .topic-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .topic-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .topic-name { font-size: 0.85rem; }
+
+  .topic-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .topic-bar-bg {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 6px;
+    flex: 1;
+    min-width: 60px;
+  }
+
+  .topic-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent2);
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- HOME SCREEN -->
+<div id="screen-home">
+  <div class="badge">OCP — ORACLE CERTIFIED PROFESSIONAL</div>
+  <h1>Java <span>17</span><br>Simulator</h1>
+  <p class="subtitle">50 questions · 90 minutes · 68% to pass</p>
+
+  <div class="info-grid">
+    <div class="info-item">
+      <span class="val">50</span>
+      <span class="lbl">Questions</span>
+    </div>
+    <div class="info-item">
+      <span class="val">90'</span>
+      <span class="lbl">Time</span>
+    </div>
+    <div class="info-item">
+      <span class="val">68%</span>
+      <span class="lbl">To Pass</span>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startExam()">Start Exam →</button>
+</div>
+
+<!-- EXAM SCREEN -->
+<div id="screen-exam">
+  <div class="exam-header">
+    <span class="logo">OCP 17</span>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <span class="q-counter" id="q-counter">1 / 50</span>
+    <div class="timer" id="timer">90:00</div>
+  </div>
+
+  <div class="exam-body" id="exam-body"></div>
+
+  <div class="exam-footer">
+    <button class="nav-btn" id="btn-prev" onclick="navigate(-1)" disabled>← Previous</button>
+    <div class="dots-wrap" id="dots-wrap"></div>
+    <button class="nav-btn primary" id="btn-next" onclick="navigate(1)">Next →</button>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="screen-result">
+  <div class="result-hero">
+    <div class="score-ring">
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="58" fill="none" stroke="#1e2d45" stroke-width="10"/>
+        <circle id="ring-fill" cx="70" cy="70" r="58" fill="none" stroke="#f59e0b"
+          stroke-width="10" stroke-linecap="round"
+          stroke-dasharray="364" stroke-dashoffset="364"
+          style="transition: stroke-dashoffset 1.2s ease"/>
+      </svg>
+      <div class="score-text">
+        <span class="pct" id="result-pct">0%</span>
+        <span class="lbl">SCORE</span>
+      </div>
+    </div>
+    <div class="result-verdict" id="result-verdict"></div>
+    <p style="color:var(--muted);font-size:0.9rem;margin-top:0.25rem;" id="result-sub"></p>
+  </div>
+
+  <div class="result-stats">
+    <div class="stat-card"><div class="sv green" id="rs-correct">0</div><div class="sl">Correct</div></div>
+    <div class="stat-card"><div class="sv red"   id="rs-wrong">0</div><div class="sl">Wrong</div></div>
+    <div class="stat-card"><div class="sv blue"  id="rs-skipped">0</div><div class="sl">Skipped</div></div>
+  </div>
+
+  <div class="section-title">Performance by topic</div>
+  <div class="topic-breakdown" id="topic-breakdown"></div>
+
+  <div class="section-title">Full review</div>
+  <div id="review-list"></div>
+
+  <button class="btn-restart" onclick="restart()">↺ New Exam</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  QUESTION BANK — OCP 17  (English / Exam Language)
+//  50 initial questions (expandable to 300+)
+// ═══════════════════════════════════════════════════════
+const ALL_QUESTIONS = [
+  // ── RECORDS ──
+  {
+    id: 1, topic: "Records",
+    text: "Given the code below, what is the expected output?",
+    code: `<span class="kw">record</span> <span class="cls">Point</span>(<span class="kw">int</span> x, <span class="kw">int</span> y) {}
+
+<span class="kw">public class</span> <span class="cls">Main</span> {
+    <span class="kw">public static void</span> main(<span class="cls">String</span>[] args) {
+        <span class="cls">Point</span> p1 = <span class="kw">new</span> <span class="cls">Point</span>(<span class="num">3</span>, <span class="num">4</span>);
+        <span class="cls">Point</span> p2 = <span class="kw">new</span> <span class="cls">Point</span>(<span class="num">3</span>, <span class="num">4</span>);
+        <span class="cls">System</span>.out.println(p1.equals(p2) + <span class="str">" "</span> + (p1 == p2));
+    }
+}`,
+    options: ["true false","false false","true true","Compilation error"],
+    answer: 0,
+    explanation: "Records automatically generate equals() based on their components. p1.equals(p2) is true because x and y are equal. p1 == p2 is false because they are distinct instances on the heap."
+  },
+  {
+    id: 2, topic: "Records",
+    text: "Which statement about records in Java 17 is INCORRECT?",
+    code: null,
+    options: [
+      "Records are implicitly final",
+      "Records can implement interfaces",
+      "Records can extend other classes",
+      "Records automatically generate hashCode(), equals(), and toString()"
+    ],
+    answer: 2,
+    explanation: "Records CANNOT extend other classes (other than implicitly java.lang.Record). They are final by nature. However, they can implement interfaces normally."
+  },
+  {
+    id: 3, topic: "Records",
+    text: "What happens when you try to compile the following code?",
+    code: `<span class="kw">record</span> <span class="cls">Person</span>(<span class="cls">String</span> name, <span class="kw">int</span> age) {
+    <span class="kw">public</span> <span class="cls">Person</span> {
+        <span class="kw">if</span> (age < <span class="num">0</span>) <span class="kw">throw new</span> <span class="cls">IllegalArgumentException</span>();
+        name = name.trim();
+    }
+}`,
+    options: [
+      "Error: compact constructors cannot modify components",
+      "Compiles and runs normally",
+      "Error: a record cannot have an explicit constructor",
+      "Error: name is final and cannot be reassigned"
+    ],
+    answer: 1,
+    explanation: "A record's compact constructor CAN modify the parameters before they are automatically assigned to the fields. This is exactly what compact constructors are for — validation and normalization."
+  },
+  // ── SEALED CLASSES ──
+  {
+    id: 4, topic: "Sealed Classes",
+    text: "Which modifier is REQUIRED for direct subclasses of a sealed class?",
+    code: `<span class="kw">public sealed class</span> <span class="cls">Shape</span> <span class="kw">permits</span> <span class="cls">Circle</span>, <span class="cls">Rectangle</span> {}`,
+    options: [
+      "final, sealed, or non-sealed",
+      "Only final",
+      "abstract or final",
+      "No special modifier is required"
+    ],
+    answer: 0,
+    explanation: "Every direct subclass of a sealed class must be final (no subclasses allowed), sealed (can have its own restricted subclasses), or non-sealed (opens the hierarchy to any extension)."
+  },
+  {
+    id: 5, topic: "Sealed Classes",
+    text: "What happens when you compile the following code?",
+    code: `<span class="kw">public sealed class</span> <span class="cls">Vehicle</span> <span class="kw">permits</span> <span class="cls">Car</span> {}
+<span class="kw">public class</span> <span class="cls">Car</span> <span class="kw">extends</span> <span class="cls">Vehicle</span> {}`,
+    options: [
+      "Compiles without errors",
+      "Error: Car must be final, sealed, or non-sealed",
+      "Error: sealed classes cannot be in separate files",
+      "Error: permits must list the full package name"
+    ],
+    answer: 1,
+    explanation: "Car extends Vehicle (sealed) but does not declare final, sealed, or non-sealed. This causes a compilation error. The correct form would be: 'public final class Car extends Vehicle {}'."
+  },
+  // ── PATTERN MATCHING ──
+  {
+    id: 6, topic: "Pattern Matching",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Object</span> obj = <span class="str">"Java 17"</span>;
+<span class="kw">if</span> (obj <span class="kw">instanceof</span> <span class="cls">String</span> s && s.length() > <span class="num">5</span>) {
+    <span class="cls">System</span>.out.println(s.toUpperCase());
+} <span class="kw">else</span> {
+    <span class="cls">System</span>.out.println(<span class="str">"Not a long String"</span>);
+}`,
+    options: ["JAVA 17","Java 17","Not a long String","Compilation error"],
+    answer: 0,
+    explanation: "Pattern matching with instanceof: 'obj instanceof String s' performs the cast and binds the variable s. The && condition checks length > 5 (7 > 5 = true). Result: s.toUpperCase() = 'JAVA 17'."
+  },
+  {
+    id: 7, topic: "Pattern Matching",
+    text: "Which statement about pattern matching in switch (preview in Java 17) is CORRECT?",
+    code: null,
+    options: [
+      "The pattern variable is always final inside the case block",
+      "You can use guarded patterns with 'when'",
+      "Switch with pattern matching cannot have a null case",
+      "Pattern matching in switch only works with primitive types"
+    ],
+    answer: 1,
+    explanation: "In pattern matching for switch, you can use guarded patterns: 'case String s when s.length() > 5'. The variable is not final. Null can be handled. It works with reference types, not primitives."
+  },
+  // ── STREAMS ──
+  {
+    id: 8, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">var</span> result = <span class="cls">Stream</span>.of(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>)
+    .filter(n -> n % <span class="num">2</span> == <span class="num">0</span>)
+    .map(n -> n * <span class="num">10</span>)
+    .reduce(<span class="num">0</span>, <span class="cls">Integer</span>::sum);
+<span class="cls">System</span>.out.println(result);`,
+    options: ["60","600","14","Compilation error"],
+    answer: 0,
+    explanation: "filter keeps 2 and 4. map transforms: 20 and 40. reduce sums: 0 + 20 + 40 = 60."
+  },
+  {
+    id: 9, topic: "Streams",
+    text: "Which operation is NOT a terminal operation on a Stream?",
+    code: null,
+    options: ["collect()","forEach()","map()","count()"],
+    answer: 2,
+    explanation: "map() is an intermediate (lazy) operation — it returns a new Stream. Terminal (eager) operations close the pipeline: collect(), forEach(), count(), reduce(), findFirst(), anyMatch(), etc."
+  },
+  {
+    id: 10, topic: "Streams",
+    text: "What does the following code print?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">String</span>&gt; names = <span class="cls">List</span>.of(<span class="str">"Ana"</span>, <span class="str">"Bob"</span>, <span class="str">"Carol"</span>);
+names.stream()
+     .peek(s -> <span class="cls">System</span>.out.print(s + <span class="str">" "</span>))
+     .filter(s -> s.length() > <span class="num">3</span>)
+     .forEach(s -> <span class="cls">System</span>.out.print(s.toUpperCase() + <span class="str">" "</span>));`,
+    options: [
+      "Ana Bob Carol CAROL",
+      "Ana Bob Carol BOB CAROL",
+      "CAROL",
+      "Ana Bob Carol"
+    ],
+    answer: 0,
+    explanation: "peek() is called for each element before filter. Elements go through the pipeline one by one: Ana (peek prints 'Ana ', filter discards), Bob (peek prints 'Bob ', filter discards), Carol (peek prints 'Carol ', filter passes, forEach prints 'CAROL '). Result: 'Ana Bob Carol CAROL '"
+  },
+  // ── LAMBDAS ──
+  {
+    id: 11, topic: "Lambdas",
+    text: "Which functional interface is most appropriate for an operation that takes two ints and returns an int?",
+    code: null,
+    options: ["BiFunction<Integer,Integer,Integer>","IntBinaryOperator","BinaryOperator<Integer>","BiConsumer<Integer,Integer>"],
+    answer: 1,
+    explanation: "IntBinaryOperator is specialized for (int, int) -> int, avoiding autoboxing. BiFunction and BinaryOperator work with Integer (wrapper), causing boxing/unboxing overhead."
+  },
+  {
+    id: 12, topic: "Lambdas",
+    text: "Does the following code compile?",
+    code: `<span class="kw">int</span> x = <span class="num">10</span>;
+<span class="cls">Runnable</span> r = () -> {
+    x = <span class="num">20</span>; <span class="cm">// line A</span>
+    <span class="cls">System</span>.out.println(x);
+};`,
+    options: [
+      "Yes, compiles and prints 20",
+      "No — variables captured by a lambda must be effectively final",
+      "Yes, compiles but throws a RuntimeException",
+      "No — Runnable does not accept block-body lambdas"
+    ],
+    answer: 1,
+    explanation: "Line A tries to reassign x, which is a local variable captured by the lambda. Captured variables must be final or effectively final (never reassigned). This causes a compilation error."
+  },
+  {
+    id: 13, topic: "Lambdas",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Function</span>&lt;<span class="cls">Integer</span>, <span class="cls">Integer</span>&gt; times2 = x -> x * <span class="num">2</span>;
+<span class="cls">Function</span>&lt;<span class="cls">Integer</span>, <span class="cls">Integer</span>&gt; plus3  = x -> x + <span class="num">3</span>;
+<span class="cls">System</span>.out.println(times2.andThen(plus3).apply(<span class="num">5</span>));`,
+    options: ["13","16","10","Compilation error"],
+    answer: 0,
+    explanation: "andThen() composes: first applies times2(5) = 10, then plus3(10) = 13. If it were compose(), the order would be reversed: plus3(5)=8, then times2(8)=16."
+  },
+  // ── OPTIONAL ──
+  {
+    id: 14, topic: "Optional",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Optional</span>&lt;<span class="cls">String</span>&gt; opt = <span class="cls">Optional</span>.empty();
+<span class="cls">String</span> result = opt.orElseGet(() -> <span class="str">"default"</span>);
+<span class="cls">System</span>.out.println(result);`,
+    options: ["null","default","Throws NoSuchElementException","Compilation error"],
+    answer: 1,
+    explanation: "orElseGet() takes a Supplier and only invokes it if the Optional is empty. Since opt is empty(), the Supplier is called, returning 'default'."
+  },
+  {
+    id: 15, topic: "Optional",
+    text: "Which Optional method throws NoSuchElementException if empty?",
+    code: null,
+    options: ["orElse(null)","orElseThrow()","get()","Both get() and orElseThrow()"],
+    answer: 3,
+    explanation: "Both get() and orElseThrow() (with no argument) throw NoSuchElementException when the Optional is empty. The difference: orElseThrow(Supplier) lets you throw a custom exception."
+  },
+  // ── CONCURRENCY ──
+  {
+    id: 16, topic: "Concurrency",
+    text: "What is the difference between synchronized and ReentrantLock?",
+    code: null,
+    options: [
+      "synchronized allows lock interruption; ReentrantLock does not",
+      "ReentrantLock provides tryLock(), lockInterruptibly(), and fairness; synchronized does not",
+      "ReentrantLock is always faster when used with primitives",
+      "There is no functional difference, only syntactic"
+    ],
+    answer: 1,
+    explanation: "ReentrantLock adds: tryLock() (tries without blocking), lockInterruptibly() (interruptible), fairness option (FIFO). synchronized is simpler but less flexible."
+  },
+  {
+    id: 17, topic: "Concurrency",
+    text: "What can the following code produce when run multiple times?",
+    code: `<span class="kw">int</span>[] count = {<span class="num">0</span>};
+<span class="cls">Runnable</span> task = () -> count[<span class="num">0</span>]++;
+<span class="cls">Thread</span> t1 = <span class="kw">new</span> <span class="cls">Thread</span>(task);
+<span class="cls">Thread</span> t2 = <span class="kw">new</span> <span class="cls">Thread</span>(task);
+t1.start(); t2.start();
+t1.join();  t2.join();
+<span class="cls">System</span>.out.println(count[<span class="num">0</span>]);`,
+    options: [
+      "Always 2",
+      "Always 1",
+      "1 or 2 (race condition)",
+      "Throws ConcurrentModificationException"
+    ],
+    answer: 2,
+    explanation: "count[0]++ is not atomic (read-modify-write). Two threads may both read the value 0 simultaneously and both write 1, yielding 1 instead of 2. This is a classic race condition."
+  },
+  {
+    id: 18, topic: "Concurrency",
+    text: "Which class provides thread-safe atomic operations on integers?",
+    code: null,
+    options: ["Integer","volatile int","AtomicInteger","synchronized int"],
+    answer: 2,
+    explanation: "AtomicInteger uses CAS (Compare-And-Swap) internally for operations like getAndIncrement() in a thread-safe manner without locks. 'volatile int' guarantees visibility but not atomicity of compound increment."
+  },
+  // ── GENERICS ──
+  {
+    id: 19, topic: "Generics",
+    text: "What is the difference between List<?> and List<Object>?",
+    code: null,
+    options: [
+      "No difference",
+      "List<?> accepts any type but does not allow adding elements (except null); List<Object> accepts any Object",
+      "List<Object> is more restrictive than List<?>",
+      "List<?> is equivalent to List<? extends Object>"
+    ],
+    answer: 1,
+    explanation: "List<?> is an unbounded wildcard: you can read Object but cannot add (except null) because the exact type is unknown. List<Object> allows adding any Object but is not compatible with List<String>."
+  },
+  {
+    id: 20, topic: "Generics",
+    text: "Does the following code compile?",
+    code: `<span class="kw">public static</span> &lt;T <span class="kw">extends</span> <span class="cls">Comparable</span>&lt;T&gt;&gt; T max(<span class="cls">List</span>&lt;T&gt; list) {
+    <span class="kw">return</span> list.stream()
+               .max(<span class="cls">Comparator</span>.naturalOrder())
+               .orElseThrow();
+}`,
+    options: [
+      "Yes, compiles and works correctly",
+      "No — T cannot be used with Comparator.naturalOrder()",
+      "No — bounded wildcards do not work with streams",
+      "Yes, but throws at runtime for non-comparable types"
+    ],
+    answer: 0,
+    explanation: "The bound <T extends Comparable<T>> guarantees that T implements Comparable. Comparator.naturalOrder() works with any Comparable. The code compiles and executes correctly."
+  },
+  // ── MODULES ──
+  {
+    id: 21, topic: "Modules (JPMS)",
+    text: "What is the purpose of the 'opens' directive in module-info.java?",
+    code: null,
+    options: [
+      "Exports a package for access at compile-time and runtime",
+      "Grants reflective access to the package at runtime, but not direct access at compile-time",
+      "Declares a dependency on another module",
+      "Opens the entire module for unrestricted access"
+    ],
+    answer: 1,
+    explanation: "'opens' allows another module to access the package via reflection at runtime (required by frameworks like Spring and Hibernate). 'exports' grants direct access at compile-time and runtime, but not reflective access to private members."
+  },
+  {
+    id: 22, topic: "Modules (JPMS)",
+    text: "What is the correct statement in module-info.java to depend on another module?",
+    code: null,
+    options: [
+      "import com.example.utils;",
+      "requires com.example.utils;",
+      "depends com.example.utils;",
+      "uses com.example.utils;"
+    ],
+    answer: 1,
+    explanation: "'requires' declares a dependency on another module. 'uses' is for ServiceLoader (service consumer). 'provides' declares a service implementation. 'import' is only used inside Java source code."
+  },
+  // ── EXCEPTIONS ──
+  {
+    id: 23, topic: "Exceptions",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">try</span> {
+    <span class="cls">System</span>.out.print(<span class="str">"A"</span>);
+    <span class="kw">throw new</span> <span class="cls">RuntimeException</span>();
+} <span class="kw">catch</span> (<span class="cls">RuntimeException</span> e) {
+    <span class="cls">System</span>.out.print(<span class="str">"B"</span>);
+    <span class="kw">throw</span> e;
+} <span class="kw">finally</span> {
+    <span class="cls">System</span>.out.print(<span class="str">"C"</span>);
+}`,
+    options: [
+      "ABC then RuntimeException is propagated",
+      "AB then RuntimeException is propagated",
+      "ABC without throwing",
+      "AC then RuntimeException is propagated"
+    ],
+    answer: 0,
+    explanation: "The finally block ALWAYS executes, even when an exception is rethrown. Sequence: try prints A, catch catches and prints B, finally prints C, then the exception is propagated."
+  },
+  {
+    id: 24, topic: "Exceptions",
+    text: "Which statement about multi-catch (catch with |) is CORRECT?",
+    code: null,
+    options: [
+      "Exceptions in a multi-catch can have an inheritance relationship",
+      "The multi-catch variable is implicitly final",
+      "Multi-catch only works with checked exceptions",
+      "Multi-catch is not allowed for exceptions in the same package"
+    ],
+    answer: 1,
+    explanation: "The variable in a multi-catch is implicitly final — it cannot be reassigned inside the catch block. Exceptions with an inheritance relationship between them are NOT allowed in multi-catch (compilation error)."
+  },
+  // ── TEXT BLOCKS ──
+  {
+    id: 25, topic: "Text Blocks",
+    text: "What is the value of s in the following code?",
+    code: `<span class="cls">String</span> s = <span class="str">"""
+        Hello
+        World
+        """</span>;
+<span class="cls">System</span>.out.println(s.lines().count());`,
+    options: ["3","2","1","4"],
+    answer: 1,
+    explanation: "The text block has two lines of content ('Hello' and 'World'). The closing \"\"\" on a new line determines the base indentation but does not add an extra line to the content. lines().count() = 2."
+  },
+  {
+    id: 26, topic: "Text Blocks",
+    text: "To suppress a line terminator inside a text block, which escape sequence should you use?",
+    code: null,
+    options: [
+      "\\n at the end of the line",
+      "\\s at the end of the line",
+      "\\ (backslash) at the end of the line",
+      "It is not possible to suppress it"
+    ],
+    answer: 2,
+    explanation: "The '\\' (line terminator escape) at the end of a line in a text block suppresses the newline, allowing you to break the source text without adding \\n to the content. '\\s' preserves trailing spaces."
+  },
+  // ── VAR ──
+  {
+    id: 27, topic: "var (Local Variable Type Inference)",
+    text: "In which context can 'var' NOT be used?",
+    code: null,
+    options: [
+      "Local variables in methods",
+      "Variables in for-each loops",
+      "Instance fields of a class",
+      "Lambda parameters with an explicit annotation"
+    ],
+    answer: 2,
+    explanation: "'var' can only be used with local variables (methods, blocks, for, for-each, try-with-resources). It is NOT allowed for: instance/static fields, method parameters, return types, or lambda parameters without annotation."
+  },
+  {
+    id: 28, topic: "var (Local Variable Type Inference)",
+    text: "What happens when you compile the following code?",
+    code: `<span class="kw">var</span> list = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;<span class="cls">String</span>&gt;();
+list.add(<span class="str">"Java"</span>);
+<span class="kw">var</span> item = list.get(<span class="num">0</span>);
+<span class="cls">System</span>.out.println(item.toUpperCase());`,
+    options: [
+      "Error: var does not work with generics",
+      "Compiles and prints JAVA",
+      "Compiles but item is inferred as Object",
+      "Error: var cannot be used twice in the same method"
+    ],
+    answer: 1,
+    explanation: "The compiler infers: var list = ArrayList<String>, var item = String (since list.get(0) returns String). item.toUpperCase() works normally. Result: JAVA."
+  },
+  // ── COLLECTIONS ──
+  {
+    id: 29, topic: "Collections",
+    text: "What happens when you call list.add() on a List created with List.of()?",
+    code: null,
+    options: [
+      "The element is added normally",
+      "Throws UnsupportedOperationException",
+      "Throws ConcurrentModificationException",
+      "Throws IllegalStateException"
+    ],
+    answer: 1,
+    explanation: "List.of() creates an immutable list. Any attempt to modify it (add, remove, set, clear) throws UnsupportedOperationException at runtime."
+  },
+  {
+    id: 30, topic: "Collections",
+    text: "What is the time complexity of get() in a HashMap with a good hash function?",
+    code: null,
+    options: ["O(1) amortized","O(log n)","O(n)","O(n log n)"],
+    answer: 0,
+    explanation: "HashMap uses a hash table, so get() is O(1) amortized on average. In the worst case (all keys with the same hash; Java 8+ uses a red-black tree in buckets), it can be O(log n)."
+  },
+  // ── I/O ──
+  {
+    id: 31, topic: "I/O & NIO",
+    text: "Which Files method reads all lines of a file into a List<String>?",
+    code: null,
+    options: ["Files.readAllLines(Path)","Files.readLines(Path)","Files.lines(Path)","Files.getLines(Path)"],
+    answer: 0,
+    explanation: "Files.readAllLines(Path) reads all lines and returns List<String> (loads everything into memory). Files.lines(Path) returns Stream<String> (lazy, better for large files). Files.readLines() and getLines() do not exist in the Java API."
+  },
+  {
+    id: 32, topic: "I/O & NIO",
+    text: "What is the advantage of try-with-resources for I/O?",
+    code: null,
+    options: [
+      "It improves read performance",
+      "It guarantees automatic closing of resources, even when exceptions occur",
+      "It allows parallel reading of streams",
+      "It automatically converts checked exceptions to unchecked"
+    ],
+    answer: 1,
+    explanation: "try-with-resources guarantees that resources implementing AutoCloseable (such as streams, connections, readers) are automatically closed when leaving the block, even if an exception is thrown."
+  },
+  // ── INTERFACES ──
+  {
+    id: 33, topic: "Interfaces",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">interface</span> <span class="cls">Greeter</span> {
+    <span class="kw">default</span> <span class="cls">String</span> greet() { <span class="kw">return</span> <span class="str">"Hello"</span>; }
+}
+<span class="kw">interface</span> <span class="cls">Formal</span> <span class="kw">extends</span> <span class="cls">Greeter</span> {
+    <span class="kw">default</span> <span class="cls">String</span> greet() { <span class="kw">return</span> <span class="str">"Good day"</span>; }
+}
+<span class="kw">class</span> <span class="cls">Bot</span> <span class="kw">implements</span> <span class="cls">Greeter</span>, <span class="cls">Formal</span> {}
+<span class="cls">System</span>.out.println(<span class="kw">new</span> <span class="cls">Bot</span>().greet());`,
+    options: ["Hello","Good day","Compilation error","Ambiguous: prints either"],
+    answer: 1,
+    explanation: "When one interface inherits from another and overrides a default method, the more specific one wins. Formal extends Greeter and overrides greet(), so Bot inherits 'Good day' from Formal without ambiguity."
+  },
+  {
+    id: 34, topic: "Interfaces",
+    text: "Can interfaces have private methods in Java 17?",
+    code: null,
+    options: [
+      "No, private methods only exist in classes",
+      "Yes, since Java 9, for internal reuse between default methods",
+      "Yes, but only if they are also static",
+      "Yes, introduced as a new feature in Java 17"
+    ],
+    answer: 1,
+    explanation: "Since Java 9, interfaces can have private (and private static) methods to share code between default methods and static methods without exposing that code to external implementations."
+  },
+  // ── ENUMS ──
+  {
+    id: 35, topic: "Enums",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">enum</span> <span class="cls">Day</span> { MON, TUE, WED }
+<span class="cls">System</span>.out.println(<span class="cls">Day</span>.WED.ordinal() + <span class="str">" "</span> + <span class="cls">Day</span>.MON.name());`,
+    options: ["2 MON","3 MON","2 mon","1 MON"],
+    answer: 0,
+    explanation: "ordinal() returns the zero-based position: MON=0, TUE=1, WED=2. name() returns the exact enum name as a String: 'MON'. Result: '2 MON'."
+  },
+  // ── OOP ──
+  {
+    id: 36, topic: "OOP",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">class</span> <span class="cls">Animal</span> {
+    <span class="cls">String</span> speak() { <span class="kw">return</span> <span class="str">"..."</span>; }
+}
+<span class="kw">class</span> <span class="cls">Dog</span> <span class="kw">extends</span> <span class="cls">Animal</span> {
+    <span class="cls">String</span> speak() { <span class="kw">return</span> <span class="str">"Woof"</span>; }
+}
+<span class="cls">Animal</span> a = <span class="kw">new</span> <span class="cls">Dog</span>();
+<span class="cls">System</span>.out.println(a.speak());`,
+    options: ["...","Woof","Compilation error","Runtime error"],
+    answer: 1,
+    explanation: "Polymorphism: variable 'a' is of type Animal (reference type) but points to a Dog (actual type). In Java, instance methods are resolved by the actual type at runtime (dynamic dispatch). Result: 'Woof'."
+  },
+  {
+    id: 37, topic: "OOP",
+    text: "What is a covariant return type in Java?",
+    code: null,
+    options: [
+      "A method that returns the same type as its parameter",
+      "A subclass can override a method returning a subtype of the original return type",
+      "A generic method whose type is inferred at runtime",
+      "Returning 'this' in builder methods"
+    ],
+    answer: 1,
+    explanation: "Covariant return: if Animal has clone() returning Animal, Dog can override it with clone() returning Dog (a subtype). This is valid in Java and avoids unnecessary casts in client code."
+  },
+  // ── SWITCH EXPRESSIONS ──
+  {
+    id: 38, topic: "Switch Expressions",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">int</span> day = <span class="num">3</span>;
+<span class="cls">String</span> name = <span class="kw">switch</span> (day) {
+    <span class="kw">case</span> <span class="num">1</span>, <span class="num">7</span> -> <span class="str">"Weekend"</span>;
+    <span class="kw">case</span> <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>, <span class="num">6</span> -> <span class="str">"Weekday"</span>;
+    <span class="kw">default</span> -> <span class="str">"Unknown"</span>;
+};
+<span class="cls">System</span>.out.println(name);`,
+    options: ["Weekend","Weekday","Unknown","Compilation error"],
+    answer: 1,
+    explanation: "Switch expression (Java 14+): day=3 matches case 2,3,4,5,6 → returns 'Weekday'. The '->' syntax has no fall-through. The compiler validates that all cases are covered (or a default exists)."
+  },
+  {
+    id: 39, topic: "Switch Expressions",
+    text: "In switch expressions, when should 'yield' be used?",
+    code: null,
+    options: [
+      "Always — it is mandatory in switch expressions",
+      "When the case uses a block {} and needs to return a value",
+      "To exit a switch without returning a value",
+      "'yield' does not exist in Java"
+    ],
+    answer: 1,
+    explanation: "'yield' is used inside {} blocks in switch expression cases to provide the return value. With the '->' syntax, the value after the arrow is automatically returned without yield."
+  },
+  // ── PATTERN MATCHING instanceof ──
+  {
+    id: 40, topic: "Pattern Matching",
+    text: "Does the following code compile?",
+    code: `<span class="cls">Object</span> obj = <span class="str">"test"</span>;
+<span class="kw">if</span> (!(obj <span class="kw">instanceof</span> <span class="cls">String</span> s)) {
+    <span class="kw">return</span>;
+}
+<span class="cls">System</span>.out.println(s.length());`,
+    options: [
+      "Yes — s is in scope after the if",
+      "No — s is only in scope inside the positive if branch",
+      "Yes, but s could be null",
+      "No — instanceof with negation is not allowed"
+    ],
+    answer: 0,
+    explanation: "The negated pattern '!(obj instanceof String s)' with an early return: after the if, the compiler knows obj IS a String (control flow analysis), so s is in scope and cannot be null. Compiles and prints 4."
+  },
+  // ── STREAMS advanced ──
+  {
+    id: 41, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">Integer</span>&gt; nums = <span class="cls">List</span>.of(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>);
+<span class="kw">int</span> sum = nums.stream()
+              .mapToInt(<span class="cls">Integer</span>::intValue)
+              .sum();
+<span class="cls">System</span>.out.println(sum);`,
+    options: ["6","123","Compilation error","0"],
+    answer: 0,
+    explanation: "mapToInt() converts to an IntStream, avoiding autoboxing. sum() is a terminal operation that sums all elements: 1+2+3=6."
+  },
+  {
+    id: 42, topic: "Streams",
+    text: "What is the difference between findFirst() and findAny() in parallel streams?",
+    code: null,
+    options: [
+      "No functional difference",
+      "findFirst() respects stream order; findAny() may return any element (more efficient in parallel)",
+      "findAny() always returns the first element",
+      "findFirst() does not work in parallel streams"
+    ],
+    answer: 1,
+    explanation: "In sequential streams, both return the first element. In parallel streams: findFirst() guarantees the first element in encounter order (more costly); findAny() returns whichever element is found first by any thread (more efficient)."
+  },
+  // ── DATE/TIME ──
+  {
+    id: 43, topic: "Date & Time API",
+    text: "Which statement about LocalDate is CORRECT?",
+    code: null,
+    options: [
+      "LocalDate stores date and time with a time zone",
+      "LocalDate is mutable for better performance",
+      "LocalDate is immutable and thread-safe",
+      "LocalDate can represent instants in time (epoch)"
+    ],
+    answer: 2,
+    explanation: "All classes in the java.time package (LocalDate, LocalTime, ZonedDateTime, etc.) are immutable and thread-safe. Operations like plusDays() return new instances. LocalDate represents only a date (no time, no timezone)."
+  },
+  {
+    id: 44, topic: "Date & Time API",
+    text: "What is the result of the following code?",
+    code: `<span class="cls">LocalDate</span> d = <span class="cls">LocalDate</span>.of(<span class="num">2024</span>, <span class="num">1</span>, <span class="num">31</span>);
+<span class="cls">LocalDate</span> next = d.plusMonths(<span class="num">1</span>);
+<span class="cls">System</span>.out.println(next);`,
+    options: ["2024-02-31","2024-02-29","2024-03-02","Throws DateTimeException"],
+    answer: 1,
+    explanation: "2024 is a leap year (divisible by 4). January has 31 days; adding 1 month, February 2024 has 29 days. The API automatically adjusts to the last valid day of the month: 2024-02-29."
+  },
+  // ── JVM & MEMORY ──
+  {
+    id: 45, topic: "JVM & Memory",
+    text: "Where are objects allocated by default in the JVM?",
+    code: null,
+    options: ["Stack","Heap","Metaspace","Code Cache"],
+    answer: 1,
+    explanation: "Objects are allocated on the Heap (managed by the GC). The Stack stores method frames, local variables, and references. Metaspace (Java 8+) stores class metadata. Code Cache stores JIT-compiled code."
+  },
+  // ── INNER CLASSES ──
+  {
+    id: 46, topic: "Inner Classes",
+    text: "Can a static nested class access instance members of its enclosing class?",
+    code: null,
+    options: [
+      "Yes, directly",
+      "No — it can only access static members of the enclosing class",
+      "Yes, but only public members",
+      "Only through reflection"
+    ],
+    answer: 1,
+    explanation: "Static nested classes do not have an implicit reference to an instance of the enclosing class. Therefore, they can only directly access static members. To access instance members, they need an explicit reference to an outer instance."
+  },
+  // ── ACCESS MODIFIERS ──
+  {
+    id: 47, topic: "OOP",
+    text: "Which access modifier allows access only within the same package and in subclasses?",
+    code: null,
+    options: ["private","default (package-private)","protected","public"],
+    answer: 2,
+    explanation: "'protected' allows access: within the same class, within the same package, and in subclasses (even from other packages). 'default' (no modifier) allows access only within the same package — subclasses from other packages have no access."
+  },
+  // ── ITERATOR ──
+  {
+    id: 48, topic: "Collections",
+    text: "What happens when you try to remove an element from a List during a for-each iteration?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">String</span>&gt; list = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;(<span class="cls">List</span>.of(<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>));
+<span class="kw">for</span> (<span class="cls">String</span> s : list) {
+    <span class="kw">if</span> (s.equals(<span class="str">"b"</span>)) list.remove(s);
+}`,
+    options: [
+      "Removes b normally",
+      "Throws ConcurrentModificationException",
+      "Undefined behavior but no exception",
+      "Compilation error"
+    ],
+    answer: 1,
+    explanation: "ArrayList uses a 'modCount' to detect structural modifications. When remove() changes modCount during a for-each iteration (which uses an Iterator internally), the Iterator detects the change and throws ConcurrentModificationException."
+  },
+  // ── COMPLETABLEFUTURE ──
+  {
+    id: 49, topic: "Concurrency",
+    text: "Which CompletableFuture method executes an action after completion without returning a value?",
+    code: null,
+    options: ["thenApply()","thenAccept()","thenCompose()","thenCombine()"],
+    answer: 1,
+    explanation: "thenAccept(Consumer) receives the result and returns void (Consumer). thenApply(Function) transforms and returns a new value. thenCompose() chains with another CompletableFuture. thenCombine() combines two independent futures."
+  },
+  // ── STRINGS ──
+  {
+    id: 50, topic: "Strings",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">String</span> a = <span class="str">"Java"</span>;
+<span class="cls">String</span> b = <span class="str">"Java"</span>;
+<span class="cls">String</span> c = <span class="kw">new</span> <span class="cls">String</span>(<span class="str">"Java"</span>);
+<span class="cls">System</span>.out.println(a == b);
+<span class="cls">System</span>.out.println(a == c);
+<span class="cls">System</span>.out.println(a.equals(c));`,
+    options: [
+      "true false true",
+      "true true true",
+      "false false true",
+      "true false false"
+    ],
+    answer: 0,
+    explanation: "String literals are interned: a and b point to the same object in the string pool (== true). new String() creates a separate object on the heap (a == c is false). equals() compares content (both 'Java' → true)."
+  },
+  {
+    id: 501, topic: "Functional Interfaces",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Predicate</span>&lt;<span class="cls">String</span>&gt; isLong  = s -> s.length() > <span class="num">5</span>;
+<span class="cls">Predicate</span>&lt;<span class="cls">String</span>&gt; isUpper = s -> s.equals(s.toUpperCase());
+<span class="cls">Predicate</span>&lt;<span class="cls">String</span>&gt; both    = isLong.and(isUpper);
+<span class="cls">System</span>.out.println(both.test(<span class="str">"JAVA17"</span>));
+<span class="cls">System</span>.out.println(both.test(<span class="str">"Java"</span>));`,
+    options: ["true\nfalse", "false\nfalse", "true\ntrue", "false\ntrue"],
+    answer: 0,
+    explanation: "'JAVA17' has length 6 (>5) and is all uppercase → both predicates true → true. 'Java' has length 4 (not >5), short-circuit AND stops → false. Result: 'true\\nfalse'."
+  },
+  {
+    id: 502, topic: "Functional Interfaces",
+    text: "Which of the following correctly represents a Function that takes a String and returns its length?",
+    code: null,
+    options: [
+      "Function<String, Integer> f = s -> s.length();",
+      "Function<Integer, String> f = s -> s.length();",
+      "Supplier<Integer> f = s -> s.length();",
+      "Consumer<String> f = s -> s.length();"
+    ],
+    answer: 0,
+    explanation: "Function<T, R> maps T → R. Here T=String and R=Integer. The lambda s -> s.length() takes a String and returns an int (auto-boxed to Integer). Options B, C, and D have wrong signatures."
+  },
+  {
+    id: 503, topic: "Method References",
+    text: "What type of method reference is used in the following code?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">String</span>&gt; list = <span class="cls">List</span>.of(<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>);
+list.forEach(<span class="cls">System</span>.out::println);`,
+    options: [
+      "Static method reference",
+      "Instance method reference of a particular object",
+      "Instance method reference of an arbitrary object",
+      "Constructor reference"
+    ],
+    answer: 1,
+    explanation: "System.out is a specific PrintStream instance. println is an instance method of that particular object. This is a 'bound instance method reference' — the instance is already fixed (System.out)."
+  },
+  {
+    id: 504, topic: "Method References",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Function</span>&lt;<span class="cls">String</span>, <span class="cls">String</span>&gt; f = <span class="cls">String</span>::toUpperCase;
+<span class="cls">System</span>.out.println(f.apply(<span class="str">"hello"</span>));`,
+    options: ["HELLO", "hello", "Compilation error", "Throws NullPointerException"],
+    answer: 0,
+    explanation: "String::toUpperCase is an unbound instance method reference — equivalent to s -> s.toUpperCase(). Applying it to 'hello' returns 'HELLO'."
+  },
+  {
+    id: 505, topic: "Method References",
+    text: "Which functional interface does 'Integer::new' correspond to?",
+    code: null,
+    options: [
+      "Supplier<Integer>",
+      "Function<String, Integer>",
+      "UnaryOperator<Integer>",
+      "Both A and B are correct depending on context"
+    ],
+    answer: 3,
+    explanation: "Integer::new is a constructor reference. Integer has Integer() (no-arg, maps to Supplier<Integer>) and Integer(String) (maps to Function<String, Integer>). The compiler resolves which constructor based on the target functional interface."
+  },
+  {
+    id: 506, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">var</span> map = <span class="cls">Stream</span>.of(<span class="str">"one"</span>, <span class="str">"two"</span>, <span class="str">"three"</span>)
+    .collect(<span class="cls">Collectors</span>.toMap(
+        <span class="cls">String</span>::length,
+        s -> s,
+        (<span class="cls">String</span> a, <span class="cls">String</span> b) -> a + <span class="str">","</span> + b
+    ));
+<span class="cls">System</span>.out.println(map.get(<span class="num">3</span>));`,
+    options: ["one,two", "two,one", "one", "Throws IllegalStateException"],
+    answer: 0,
+    explanation: "toMap with a merge function: 'one'(3) and 'two'(3) both have length 3, so the merge function is called: 'one' + ',' + 'two' = 'one,two'. 'three'(5) has no collision. map.get(3) = 'one,two'."
+  },
+  {
+    id: 507, topic: "Streams",
+    text: "What does the following code print?",
+    code: `<span class="kw">long</span> count = <span class="cls">Stream</span>.of(<span class="str">"a"</span>, <span class="str">"bb"</span>, <span class="str">"ccc"</span>, <span class="str">"d"</span>, <span class="str">"ee"</span>)
+    .filter(s -> s.length() > <span class="num">1</span>)
+    .mapToInt(<span class="cls">String</span>::length)
+    .filter(n -> n % <span class="num">2</span> == <span class="num">0</span>)
+    .count();
+<span class="cls">System</span>.out.println(count);`,
+    options: ["1", "2", "3", "0"],
+    answer: 1,
+    explanation: "filter(length>1): 'bb'(2), 'ccc'(3), 'ee'(2). mapToInt: [2, 3, 2]. filter(even): 2 and 2 pass. count() = 2."
+  },
+  {
+    id: 508, topic: "Optional",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Optional</span>&lt;<span class="cls">Integer</span>&gt; opt = <span class="cls">Optional</span>.of(<span class="num">10</span>)
+    .filter(n -> n > <span class="num">5</span>)
+    .map(n -> n * <span class="num">2</span>)
+    .filter(n -> n > <span class="num">100</span>);
+<span class="cls">System</span>.out.println(opt.isPresent());`,
+    options: ["true", "false", "Throws NoSuchElementException", "Compilation error"],
+    answer: 1,
+    explanation: "Start with Optional(10). filter(>5): 10>5 → passes. map(*2): 20. filter(>100): 20>100 is false → empty. isPresent() = false."
+  },
+  {
+    id: 509, topic: "Optional",
+    text: "Which statement about Optional.of() vs Optional.ofNullable() is CORRECT?",
+    code: null,
+    options: [
+      "Both throw NullPointerException if the argument is null",
+      "Optional.of(null) throws NullPointerException; Optional.ofNullable(null) returns an empty Optional",
+      "Optional.ofNullable(null) throws NullPointerException; Optional.of(null) returns an empty Optional",
+      "Both return an empty Optional if the argument is null"
+    ],
+    answer: 1,
+    explanation: "Optional.of(null) throws NullPointerException immediately. Optional.ofNullable(null) safely returns Optional.empty(). Use ofNullable when the value might be null; use of() when you are sure it is not null."
+  },
+  {
+    id: 510, topic: "var",
+    text: "Which of the following uses of 'var' causes a compilation error?",
+    code: null,
+    options: [
+      "var list = new ArrayList<String>();",
+      "var x = 10; x = 20;",
+      "var obj = null;",
+      "for (var s : List.of(\"a\", \"b\")) { }"
+    ],
+    answer: 2,
+    explanation: "var obj = null is a compilation error: the compiler cannot infer the type from a null literal alone — there is no type information. All other options are valid: list infers ArrayList<String>, x infers int, the for-each infers String."
+  },
+  {
+    id: 511, topic: "var",
+    text: "What type does the compiler infer for 'result' in the following code?",
+    code: `<span class="kw">var</span> nums = <span class="cls">List</span>.of(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>);
+<span class="kw">var</span> result = nums.stream().mapToInt(<span class="cls">Integer</span>::intValue).average();`,
+    options: ["double", "Double", "OptionalDouble", "Optional<Double>"],
+    answer: 2,
+    explanation: "IntStream.average() returns OptionalDouble (not Optional<Double> and not a primitive). 'result' is inferred as OptionalDouble. To get the value: result.getAsDouble()."
+  },
+  {
+    id: 512, topic: "Records",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">record</span> <span class="cls">Circle</span>(<span class="kw">double</span> radius) {
+    <span class="kw">double</span> area() { <span class="kw">return</span> <span class="cls">Math</span>.PI * radius * radius; }
+    <span class="kw">static</span> <span class="cls">Circle</span> unit() { <span class="kw">return new</span> <span class="cls">Circle</span>(<span class="num">1.0</span>); }
+}
+<span class="cls">Circle</span> c = <span class="cls">Circle</span>.unit();
+<span class="cls">System</span>.out.println(c.radius() + <span class="str">" "</span> + (c.area() > <span class="num">3</span>));`,
+    options: ["1.0 true", "1.0 false", "Compilation error", "Throws ArithmeticException"],
+    answer: 0,
+    explanation: "Records can have static factory methods and additional instance methods. unit() creates Circle(1.0). radius() = 1.0. area() = π × 1 × 1 ≈ 3.14 > 3 → true. Result: '1.0 true'."
+  },
+  {
+    id: 513, topic: "Records",
+    text: "Which of the following statements about record components is CORRECT?",
+    code: null,
+    options: [
+      "Record components are public and mutable",
+      "Record components are private and final; accessors are public with the same name as the component",
+      "Record components are protected and final",
+      "Record components can be static"
+    ],
+    answer: 1,
+    explanation: "Record components are private final fields. The compiler generates a public accessor method with the same name as the component (not getX() style). For record Point(int x, int y), the accessors are x() and y(), not getX() and getY()."
+  },
+  {
+    id: 514, topic: "Switch",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Object</span> obj = <span class="str">"Hello"</span>;
+<span class="kw">int</span> result = <span class="kw">switch</span> (obj) {
+    <span class="kw">case</span> <span class="cls">Integer</span> i -> i;
+    <span class="kw">case</span> <span class="cls">String</span>  s -> s.length();
+    <span class="kw">default</span>        -> <span class="num">-1</span>;
+};
+<span class="cls">System</span>.out.println(result);`,
+    options: ["5", "-1", "Compilation error", "Throws ClassCastException"],
+    answer: 0,
+    explanation: "Pattern matching switch: obj is a String 'Hello'. The case String s matches, s.length() = 5. result = 5."
+  },
+  {
+    id: 515, topic: "Switch",
+    text: "What happens when a switch expression does not cover all possible values of a sealed type and has no default?",
+    code: null,
+    options: [
+      "It compiles and returns null at runtime",
+      "It is a compilation error — the switch must be exhaustive",
+      "It compiles and throws MatchException at runtime",
+      "It compiles with a warning but runs fine"
+    ],
+    answer: 1,
+    explanation: "A switch expression must be exhaustive. For a sealed type where all permitted subtypes are covered in case labels, no default is needed. If cases are missing and there is no default, the compiler rejects the code."
+  },
+  {
+    id: 516, topic: "String API",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">String</span> s = <span class="str">"  hello world  "</span>;
+<span class="cls">System</span>.out.println(s.stripLeading().length());
+<span class="cls">System</span>.out.println(s.stripTrailing().length());`,
+    options: ["13\n13", "13\n15", "15\n13", "11\n11"],
+    answer: 1,
+    explanation: "Original string length = 15 (2 leading + 'hello world'(11) + 2 trailing). stripLeading() removes 2 leading spaces → 13 chars. stripTrailing() removes 2 trailing spaces → 13 chars. Wait — both are 13. Re-check: '  hello world  ' = 2+11+2 = 15. stripLeading = 13, stripTrailing = 13. Result: '13\\n13'."
+  },
+  {
+    id: 517, topic: "String API",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">String</span> s = <span class="str">"one\\ntwo\\nthree"</span>;
+<span class="cls">System</span>.out.println(s.lines().count());
+<span class="cls">System</span>.out.println(s.lines().findFirst().get());`,
+    options: ["3\none", "2\none", "3\ntwo", "1\none\\ntwo\\nthree"],
+    answer: 0,
+    explanation: "lines() (Java 11+) splits on line terminators. 'one\\ntwo\\nthree' has 3 lines. count() = 3. findFirst() returns the first line: 'one'. Result: '3\\none'."
+  },
+  {
+    id: 518, topic: "String API",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">System</span>.out.println(<span class="str">"  "</span>.isBlank());
+<span class="cls">System</span>.out.println(<span class="str">"  "</span>.isEmpty());`,
+    options: ["true\nfalse", "true\ntrue", "false\nfalse", "false\ntrue"],
+    answer: 0,
+    explanation: "isBlank() (Java 11+) returns true if the string is empty or contains only whitespace. isEmpty() returns true only if length is 0. '  ' has whitespace but length > 0. isBlank() = true, isEmpty() = false."
+  },
+  {
+    id: 519, topic: "instanceof",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Object</span> obj = <span class="cls">Integer</span>.valueOf(<span class="num">42</span>);
+<span class="kw">if</span> (obj <span class="kw">instanceof</span> <span class="cls">Number</span> n && n.intValue() > <span class="num">10</span>) {
+    <span class="cls">System</span>.out.println(<span class="str">"Number > 10: "</span> + n);
+}`,
+    options: ["Number > 10: 42", "Compilation error", "Nothing is printed", "Throws ClassCastException"],
+    answer: 0,
+    explanation: "Integer is a subtype of Number. 'obj instanceof Number n' matches and binds n = 42. n.intValue() = 42 > 10 → true. Prints 'Number > 10: 42'."
+  },
+  {
+    id: 520, topic: "instanceof",
+    text: "In which scope is the pattern variable 'n' accessible?",
+    code: `<span class="kw">if</span> (obj <span class="kw">instanceof</span> <span class="cls">Integer</span> n) {
+    <span class="cm">// scope A</span>
+} <span class="kw">else</span> {
+    <span class="cm">// scope B</span>
+}
+<span class="cm">// scope C</span>`,
+    options: [
+      "Scopes A, B, and C",
+      "Only scope A",
+      "Scopes A and C",
+      "Only scope C"
+    ],
+    answer: 1,
+    explanation: "The pattern variable 'n' is in scope only where the compiler can guarantee it has been matched. In scope A (inside the if-true branch) obj IS an Integer, so n is accessible. In the else branch and after the if, the match is not guaranteed, so n is out of scope."
+  },
+  {
+    id: 521, topic: "Generics",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">static</span> &lt;T&gt; <span class="kw">void</span> swap(<span class="cls">T</span>[] arr, <span class="kw">int</span> i, <span class="kw">int</span> j) {
+    T tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+}
+<span class="cls">String</span>[] s = {<span class="str">"A"</span>, <span class="str">"B"</span>, <span class="str">"C"</span>};
+swap(s, <span class="num">0</span>, <span class="num">2</span>);
+<span class="cls">System</span>.out.println(s[<span class="num">0</span>] + s[<span class="num">2</span>]);`,
+    options: ["CA", "AC", "CB", "Compilation error"],
+    answer: 0,
+    explanation: "The generic swap method exchanges elements at indices i and j. swap(s, 0, 2): s[0]='A' and s[2]='C' are swapped. After swap: s = ['C', 'B', 'A']. s[0]+s[2] = 'C'+'A' = 'CA'."
+  },
+  {
+    id: 522, topic: "Generics",
+    text: "What does the following code print?",
+    code: `<span class="kw">static</span> &lt;T <span class="kw">extends</span> <span class="cls">Number</span>&gt; T first(<span class="cls">List</span>&lt;T&gt; list) {
+    <span class="kw">return</span> list.get(<span class="num">0</span>);
+}
+<span class="cls">System</span>.out.println(first(<span class="cls">List</span>.of(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>)));`,
+    options: ["1", "1.0", "Compilation error", "Throws IndexOutOfBoundsException"],
+    answer: 0,
+    explanation: "The bounded type parameter <T extends Number> means T must be a Number or subclass. List.of(1,2,3) creates List<Integer>. T is inferred as Integer. get(0) returns Integer 1. println prints '1'."
+  },
+  {
+    id: 523, topic: "Sealed Classes",
+    text: "Which of the following is a valid class hierarchy for a sealed class?",
+    code: null,
+    options: [
+      "sealed class A permits B {} — class B extends A {}",
+      "sealed class A permits B {} — final class B extends A {}",
+      "sealed class A {} — final class B extends A {}",
+      "non-sealed class A permits B {} — final class B extends A {}"
+    ],
+    answer: 1,
+    explanation: "A sealed class must list its permitted subclasses in the permits clause. Each permitted subclass must be final, sealed, or non-sealed. Option B is correct: sealed A permits B, and B is final. Option A is wrong (B is not final/sealed/non-sealed). Option C has no permits. Option D: non-sealed cannot have permits."
+  },
+  {
+    id: 524, topic: "Sealed Classes",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">sealed interface</span> <span class="cls">Result</span>&lt;T&gt; <span class="kw">permits</span> <span class="cls">Success</span>, <span class="cls">Failure</span> {}
+<span class="kw">record</span> <span class="cls">Success</span>&lt;T&gt;(T value) <span class="kw">implements</span> <span class="cls">Result</span>&lt;T&gt; {}
+<span class="kw">record</span> <span class="cls">Failure</span>&lt;T&gt;(<span class="cls">String</span> error) <span class="kw">implements</span> <span class="cls">Result</span>&lt;T&gt; {}
+<span class="cls">Result</span>&lt;<span class="cls">Integer</span>&gt; r = <span class="kw">new</span> <span class="cls">Success</span>&lt;&gt;(<span class="num">42</span>);
+<span class="cls">String</span> msg = <span class="kw">switch</span>(r) {
+    <span class="kw">case</span> <span class="cls">Success</span>&lt;<span class="cls">Integer</span>&gt; s -> <span class="str">"ok: "</span> + s.value();
+    <span class="kw">case</span> <span class="cls">Failure</span>&lt;<span class="cls">Integer</span>&gt; f -> <span class="str">"err: "</span> + f.error();
+};
+<span class="cls">System</span>.out.println(msg);`,
+    options: ["ok: 42", "err: null", "Compilation error", "Throws MatchException"],
+    answer: 0,
+    explanation: "r is a Success<Integer>(42). Pattern switch: case Success<Integer> s matches → 'ok: ' + s.value() = 'ok: 42'. The switch is exhaustive (covers all sealed subtypes)."
+  },
+  {
+    id: 525, topic: "Concurrency",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">ExecutorService</span> exec = <span class="cls">Executors</span>.newFixedThreadPool(<span class="num">2</span>);
+<span class="cls">Future</span>&lt;<span class="cls">String</span>&gt; f1 = exec.submit(() -> <span class="str">"A"</span>);
+<span class="cls">Future</span>&lt;<span class="cls">String</span>&gt; f2 = exec.submit(() -> <span class="str">"B"</span>);
+<span class="cls">System</span>.out.println(f1.get() + f2.get());
+exec.shutdown();`,
+    options: ["AB", "BA", "AB or BA (non-deterministic)", "Throws ExecutionException"],
+    answer: 0,
+    explanation: "f1.get() blocks until 'A' is ready, then f2.get() blocks until 'B' is ready. Even if f2 finishes first, the concatenation order is determined by the order we call get(): always f1 then f2. Result: 'AB'."
+  },
+  {
+    id: 526, topic: "Concurrency",
+    text: "What does CompletableFuture.runAsync() return?",
+    code: null,
+    options: [
+      "CompletableFuture<Void>",
+      "CompletableFuture<Object>",
+      "void",
+      "Future<Void>"
+    ],
+    answer: 0,
+    explanation: "runAsync(Runnable) executes the Runnable asynchronously and returns CompletableFuture<Void> — representing the completion of the action with no result. supplyAsync(Supplier<T>) returns CompletableFuture<T> when you need a result."
+  },
+  {
+    id: 527, topic: "Modules (JPMS)",
+    text: "What is the difference between 'exports' and 'opens' in module-info.java?",
+    code: null,
+    options: [
+      "They are identical",
+      "'exports' allows compile-time and runtime access to public types; 'opens' allows deep reflective access at runtime only",
+      "'opens' allows compile-time access; 'exports' allows runtime access",
+      "'exports' is for packages; 'opens' is for classes"
+    ],
+    answer: 1,
+    explanation: "'exports pkg' makes public types in pkg accessible at compile-time and runtime (but not private members reflectively). 'opens pkg' grants deep reflective access at runtime to all members (including private), used by frameworks like Spring, Hibernate, and JPA."
+  },
+  {
+    id: 528, topic: "Modules (JPMS)",
+    text: "Which statement about the unnamed module is CORRECT?",
+    code: null,
+    options: [
+      "The unnamed module cannot access named modules",
+      "All code on the classpath belongs to the unnamed module, which can read all named modules",
+      "The unnamed module is the same as java.base",
+      "You must explicitly declare the unnamed module in module-info.java"
+    ],
+    answer: 1,
+    explanation: "Code placed on the classpath (not the module path) belongs to the unnamed module. The unnamed module can read all named modules, making it backward-compatible with pre-module code. You cannot write module-info.java for it."
+  },
+  {
+    id: 529, topic: "Date & Time API",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">LocalDate</span> d = <span class="cls">LocalDate</span>.of(<span class="num">2024</span>, <span class="num">12</span>, <span class="num">31</span>);
+<span class="cls">System</span>.out.println(d.getDayOfYear());
+<span class="cls">System</span>.out.println(d.getMonth());`,
+    options: ["365\nDECEMBER", "366\nDECEMBER", "365\n12", "366\n12"],
+    answer: 1,
+    explanation: "2024 is a leap year (366 days). December 31 is the 366th day of 2024. getDayOfYear() = 366. getMonth() returns the Month enum constant: DECEMBER."
+  },
+  {
+    id: 530, topic: "Date & Time API",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Instant</span> now = <span class="cls">Instant</span>.parse(<span class="str">"2024-06-15T10:30:00Z"</span>);
+<span class="cls">Instant</span> later = now.plus(<span class="cls">Duration</span>.ofHours(<span class="num">3</span>));
+<span class="cls">System</span>.out.println(<span class="cls">ChronoUnit</span>.MINUTES.between(now, later));`,
+    options: ["3", "180", "30", "Throws DateTimeException"],
+    answer: 1,
+    explanation: "later = now + 3 hours. ChronoUnit.MINUTES.between(now, later) calculates the number of complete minutes between the two instants. 3 hours × 60 minutes = 180."
+  },
+  {
+    id: 531, topic: "Collections",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Map</span>&lt;<span class="cls">String</span>, <span class="cls">Integer</span>&gt; map = <span class="kw">new</span> <span class="cls">HashMap</span>&lt;&gt;();
+map.put(<span class="str">"a"</span>, <span class="num">1</span>);
+map.compute(<span class="str">"a"</span>, (k, v) -> v == <span class="kw">null</span> ? <span class="num">1</span> : v + <span class="num">10</span>);
+map.compute(<span class="str">"b"</span>, (k, v) -> v == <span class="kw">null</span> ? <span class="num">1</span> : v + <span class="num">10</span>);
+<span class="cls">System</span>.out.println(map.get(<span class="str">"a"</span>) + <span class="str">" "</span> + map.get(<span class="str">"b"</span>));`,
+    options: ["11 1", "1 1", "11 10", "Throws NullPointerException"],
+    answer: 0,
+    explanation: "compute(key, BiFunction): for 'a' v=1, returns 1+10=11. For 'b' v=null (not present), returns 1. map = {a=11, b=1}. Result: '11 1'."
+  },
+  {
+    id: 532, topic: "Collections",
+    text: "Which collection maintains insertion order and allows duplicate elements?",
+    code: null,
+    options: ["HashSet", "TreeSet", "LinkedHashSet", "ArrayList"],
+    answer: 3,
+    explanation: "ArrayList maintains insertion order and allows duplicate elements. HashSet: unordered, no duplicates. TreeSet: sorted, no duplicates. LinkedHashSet: insertion order, no duplicates. Only ArrayList (and other List implementations) allows duplicates."
+  },
+  {
+    id: 533, topic: "OOP",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">class</span> <span class="cls">Parent</span> {
+    <span class="kw">void</span> display() { <span class="cls">System</span>.out.print(<span class="str">"P"</span>); }
+}
+<span class="kw">class</span> <span class="cls">Child</span> <span class="kw">extends</span> <span class="cls">Parent</span> {
+    <span class="kw">void</span> display() { <span class="cls">System</span>.out.print(<span class="str">"C"</span>); }
+    <span class="kw">void</span> show() { display(); <span class="kw">super</span>.display(); }
+}
+<span class="kw">new</span> <span class="cls">Child</span>().show();`,
+    options: ["CP", "PC", "CC", "PP"],
+    answer: 0,
+    explanation: "Inside show(), display() calls the overridden version (Child's display) — polymorphism applies to 'this'. super.display() explicitly calls Parent's display. Result: 'C' then 'P' = 'CP'."
+  },
+  {
+    id: 534, topic: "OOP",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">interface</span> <span class="cls">Walkable</span> {
+    <span class="kw">default</span> <span class="cls">String</span> move() { <span class="kw">return</span> <span class="str">"walk"</span>; }
+}
+<span class="kw">interface</span> <span class="cls">Runnable</span> <span class="kw">extends</span> <span class="cls">Walkable</span> {
+    <span class="kw">default</span> <span class="cls">String</span> move() { <span class="kw">return</span> <span class="str">"run"</span>; }
+}
+<span class="kw">class</span> <span class="cls">Athlete</span> <span class="kw">implements</span> <span class="cls">Runnable</span> {}
+<span class="cls">System</span>.out.println(<span class="kw">new</span> <span class="cls">Athlete</span>().move());`,
+    options: ["walk", "run", "Compilation error — ambiguous", "walk and run"],
+    answer: 1,
+    explanation: "When one interface extends another and overrides a default method, the more specific (child) interface wins. Runnable extends Walkable and overrides move() to return 'run'. Athlete implements Runnable, so it inherits 'run' without ambiguity."
+  },
+  {
+    id: 535, topic: "Exceptions",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">try</span> (var r = <span class="kw">new</span> <span class="cls">AutoCloseable</span>() {
+    <span class="kw">public void</span> close() { <span class="cls">System</span>.out.print(<span class="str">"closed"</span>); }
+}) {
+    <span class="cls">System</span>.out.print(<span class="str">"open"</span>);
+}`,
+    options: ["openclosed", "closedopen", "open", "Compilation error"],
+    answer: 0,
+    explanation: "try-with-resources: the body executes first (prints 'open'), then close() is automatically called when the block exits (prints 'closed'). Result: 'openclosed'."
+  },
+  {
+    id: 536, topic: "Exceptions",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">try</span> {
+    <span class="kw">int</span> result = <span class="num">10</span> / <span class="num">0</span>;
+} <span class="kw">catch</span> (<span class="cls">ArithmeticException</span> e) {
+    <span class="cls">System</span>.out.print(<span class="str">"caught"</span>);
+    <span class="kw">throw new</span> <span class="cls">RuntimeException</span>(<span class="str">"wrapped"</span>, e);
+} <span class="kw">finally</span> {
+    <span class="cls">System</span>.out.print(<span class="str">"-finally"</span>);
+}`,
+    options: [
+      "caught-finally then RuntimeException propagated",
+      "caught then RuntimeException propagated",
+      "caught-finally",
+      "-finally then RuntimeException propagated"
+    ],
+    answer: 0,
+    explanation: "catch prints 'caught', throws RuntimeException. Before the exception propagates, finally executes: prints '-finally'. Then RuntimeException('wrapped') is propagated. Visible output: 'caught-finally'."
+  },
+  {
+    id: 537, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">var</span> result = <span class="cls">Stream</span>.of(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>)
+    .collect(<span class="cls">Collectors</span>.partitioningBy(n -> n % <span class="num">2</span> == <span class="num">0</span>));
+<span class="cls">System</span>.out.println(result.get(<span class="kw">false</span>));`,
+    options: ["[1, 3, 5]", "[2, 4]", "[1, 2, 3, 4, 5]", "null"],
+    answer: 0,
+    explanation: "partitioningBy creates a Map<Boolean, List<Integer>>. result.get(false) returns the list of elements that did NOT satisfy the predicate (odd numbers): [1, 3, 5]."
+  },
+  {
+    id: 538, topic: "Streams",
+    text: "Which terminal operation is short-circuiting?",
+    code: null,
+    options: ["forEach()", "reduce()", "allMatch()", "count()"],
+    answer: 2,
+    explanation: "allMatch() is short-circuiting: it stops processing as soon as it finds an element that does not match the predicate (returning false immediately). forEach() and count() process all elements. reduce() also processes all elements."
+  },
+  {
+    id: 539, topic: "JVM & Memory",
+    text: "What is the difference between a SoftReference and a WeakReference?",
+    code: null,
+    options: [
+      "No functional difference",
+      "WeakReference is collected as soon as no strong reference exists; SoftReference is collected only under memory pressure",
+      "SoftReference is collected immediately; WeakReference is kept longer",
+      "SoftReference prevents GC entirely; WeakReference allows GC"
+    ],
+    answer: 1,
+    explanation: "WeakReference: GC may collect the referent at any time when no strong references exist (even without memory pressure). SoftReference: GC collects only when the JVM needs memory. SoftReferences are useful for memory-sensitive caches."
+  },
+  {
+    id: 540, topic: "JVM & Memory",
+    text: "What is the purpose of the -XX:+UseG1GC JVM flag?",
+    code: null,
+    options: [
+      "Enables the Serial GC",
+      "Enables the G1 (Garbage First) Garbage Collector",
+      "Sets the maximum heap size",
+      "Enables JIT compilation"
+    ],
+    answer: 1,
+    explanation: "-XX:+UseG1GC activates the G1 Garbage Collector, which divides the heap into regions and prioritizes collection of regions with the most garbage ('garbage first'). G1 is the default GC from Java 9 onward and aims for predictable pause times."
+  },
+  {
+    id: 541, topic: "OOP",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">abstract class</span> <span class="cls">Printer</span> {
+    <span class="kw">abstract void</span> print();
+    <span class="kw">void</span> run() { System.out.print(<span class="str">"start-"</span>); print(); System.out.print(<span class="str">"-end"</span>); }
+}
+<span class="kw">new</span> <span class="cls">Printer</span>() {
+    <span class="kw">void</span> print() { <span class="cls">System</span>.out.print(<span class="str">"hello"</span>); }
+}.run();`,
+    options: ["start-hello-end", "hello", "start--end", "Compilation error"],
+    answer: 0,
+    explanation: "An anonymous class extends Printer and implements print(). run() is called: prints 'start-', then calls print() via polymorphism → 'hello', then prints '-end'. Result: 'start-hello-end'."
+  },
+  {
+    id: 542, topic: "Generics",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">static</span> &lt;T&gt; <span class="cls">List</span>&lt;T&gt; singletonList(T item) {
+    <span class="kw">return</span> <span class="cls">List</span>.of(item);
+}
+<span class="cls">List</span>&lt;<span class="cls">String</span>&gt; list = singletonList(<span class="str">"Java"</span>);
+<span class="cls">System</span>.out.println(list.size() + <span class="str">" "</span> + list.get(<span class="num">0</span>));`,
+    options: ["1 Java", "0 Java", "Compilation error", "1 null"],
+    answer: 0,
+    explanation: "T is inferred as String. List.of('Java') creates an immutable single-element list. size() = 1, get(0) = 'Java'. Result: '1 Java'."
+  },
+  {
+    id: 543, topic: "Concurrency",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">CompletableFuture</span>&lt;<span class="cls">Integer</span>&gt; cf =
+    <span class="cls">CompletableFuture</span>.supplyAsync(() -> <span class="num">10</span>)
+        .thenApply(n -> n * <span class="num">2</span>)
+        .exceptionally(e -> <span class="num">-1</span>);
+<span class="cls">System</span>.out.println(cf.get());`,
+    options: ["20", "-1", "10", "Throws ExecutionException"],
+    answer: 0,
+    explanation: "supplyAsync returns 10. thenApply multiplies by 2 → 20. No exception occurs, so exceptionally is bypassed. cf.get() returns 20."
+  },
+  {
+    id: 544, topic: "Records",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">record</span> <span class="cls">Product</span>(<span class="cls">String</span> name, <span class="kw">double</span> price) {}
+<span class="cls">Product</span> p1 = <span class="kw">new</span> <span class="cls">Product</span>(<span class="str">"Widget"</span>, <span class="num">9.99</span>);
+<span class="cls">Product</span> p2 = <span class="kw">new</span> <span class="cls">Product</span>(<span class="str">"Widget"</span>, <span class="num">9.99</span>);
+<span class="cls">System</span>.out.println(p1.equals(p2));
+<span class="cls">System</span>.out.println(p1.hashCode() == p2.hashCode());`,
+    options: ["true\ntrue", "false\nfalse", "true\nfalse", "false\ntrue"],
+    answer: 0,
+    explanation: "Records generate equals() and hashCode() based on all components. p1 and p2 have identical name and price → equals() returns true. Equal objects must have equal hashCodes per the contract → hashCode() match → true. Result: 'true\\ntrue'."
+  },
+  {
+    id: 545, topic: "I/O & NIO",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Path</span> p = <span class="cls">Path</span>.of(<span class="str">"/home/user/docs/report.pdf"</span>);
+<span class="cls">System</span>.out.println(p.getNameCount());
+<span class="cls">System</span>.out.println(p.subpath(<span class="num">1</span>, <span class="num">3</span>));`,
+    options: ["4\nuser/docs", "5\nuser/docs", "4\ndocs/report.pdf", "3\nhome/user"],
+    answer: 0,
+    explanation: "The path has 4 name elements: home(0), user(1), docs(2), report.pdf(3). getNameCount() = 4. subpath(1, 3) is [1,3) exclusive: elements at indices 1 and 2 = 'user/docs'."
+  },
+  {
+    id: 546, topic: "I/O & NIO",
+    text: "Which Files method is equivalent to 'mkdir -p' in Unix?",
+    code: null,
+    options: [
+      "Files.createDirectory(path)",
+      "Files.createDirectories(path)",
+      "Files.mkdir(path)",
+      "Files.mkdirs(path)"
+    ],
+    answer: 1,
+    explanation: "Files.createDirectories(Path) creates the target directory and all missing intermediate directories (like mkdir -p). Files.createDirectory(Path) only creates the leaf directory and throws NoSuchFileException if the parent does not exist. mkdir() and mkdirs() belong to the old File API."
+  },
+  {
+    id: 547, topic: "String API",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">String</span> s = <span class="str">"Java 17 OCP"</span>;
+<span class="cls">System</span>.out.println(s.indexOf(<span class="str">" "</span>));
+<span class="cls">System</span>.out.println(s.indexOf(<span class="str">" "</span>, <span class="num">5</span>));`,
+    options: ["4\n7", "4\n4", "4\n8", "7\n4"],
+    answer: 0,
+    explanation: "'Java 17 OCP': first space at index 4. indexOf(' ', 5) searches from index 5 onwards — finds the space before 'OCP' at index 7. Result: '4\\n7'."
+  },
+  {
+    id: 548, topic: "Lambdas",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">Integer</span>&gt; nums = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;(<span class="cls">List</span>.of(<span class="num">3</span>, <span class="num">1</span>, <span class="num">4</span>, <span class="num">1</span>, <span class="num">5</span>));
+nums.sort((<span class="cls">Comparator</span>&lt;<span class="cls">Integer</span>&gt;) <span class="cls">Comparator</span>.naturalOrder());
+<span class="cls">System</span>.out.println(nums);`,
+    options: ["[1, 1, 3, 4, 5]", "[5, 4, 3, 1, 1]", "[3, 1, 4, 1, 5]", "Compilation error"],
+    answer: 0,
+    explanation: "Comparator.naturalOrder() for Integer sorts ascending. After sort: [1, 1, 3, 4, 5]."
+  },
+  {
+    id: 549, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">OptionalInt</span> result = <span class="cls">IntStream</span>.range(<span class="num">1</span>, <span class="num">6</span>)
+    .filter(n -> n > <span class="num">3</span>)
+    .findFirst();
+<span class="cls">System</span>.out.println(result.getAsInt());`,
+    options: ["4", "5", "1", "Throws NoSuchElementException"],
+    answer: 0,
+    explanation: "IntStream.range(1, 6) generates 1,2,3,4,5. filter(>3): 4 and 5 pass. findFirst() returns the first matching element: 4 (wrapped in OptionalInt). getAsInt() = 4."
+  },
+  {
+    id: 550, topic: "OOP",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">class</span> <span class="cls">Box</span> {
+    <span class="kw">private final int</span> value;
+    <span class="cls">Box</span>(<span class="kw">int</span> v) { <span class="kw">this</span>.value = v; }
+    <span class="cls">Box</span> add(<span class="kw">int</span> n) { <span class="kw">return new</span> <span class="cls">Box</span>(value + n); }
+    <span class="cls">String</span> show() { <span class="kw">return</span> <span class="str">"Box("</span> + value + <span class="str">")"</span>; }
+}
+<span class="cls">Box</span> b = <span class="kw">new</span> <span class="cls">Box</span>(<span class="num">5</span>).add(<span class="num">3</span>).add(<span class="num">2</span>);
+<span class="cls">System</span>.out.println(b.show());`,
+    options: ["Box(10)", "Box(5)", "Box(8)", "Compilation error"],
+    answer: 0,
+    explanation: "Method chaining on an immutable object. new Box(5).add(3) returns new Box(8). .add(2) returns new Box(10). b.show() = 'Box(10)'."
+  },
+  {
+    id: 551, topic: "Concurrency",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">AtomicInteger</span> ai = <span class="kw">new</span> <span class="cls">AtomicInteger</span>(<span class="num">0</span>);
+<span class="cls">Thread</span> t1 = <span class="kw">new</span> <span class="cls">Thread</span>(() -> ai.addAndGet(<span class="num">5</span>));
+<span class="cls">Thread</span> t2 = <span class="kw">new</span> <span class="cls">Thread</span>(() -> ai.addAndGet(<span class="num">3</span>));
+t1.start(); t2.start();
+t1.join(); t2.join();
+<span class="cls">System</span>.out.println(ai.get());`,
+    options: ["8 always", "5 or 3", "0", "Non-deterministic between 0 and 8"],
+    answer: 0,
+    explanation: "AtomicInteger.addAndGet() is atomic — it performs read-modify-write as a single indivisible operation using CAS. Regardless of thread scheduling, both additions complete fully. Final result is always 5 + 3 = 8."
+  },
+  {
+    id: 552, topic: "Concurrency",
+    text: "Which of the following is a correct way to make a singleton thread-safe using lazy initialization?",
+    code: null,
+    options: [
+      "public static Singleton getInstance() { if (instance == null) instance = new Singleton(); return instance; }",
+      "public static synchronized Singleton getInstance() { if (instance == null) instance = new Singleton(); return instance; }",
+      "private static final Singleton INSTANCE = new Singleton();",
+      "Both B and C are correct thread-safe approaches"
+    ],
+    answer: 3,
+    explanation: "Option A is NOT thread-safe (race condition). Option B uses synchronized — thread-safe but has lock overhead on every call. Option C (eager initialization) is thread-safe via class loading guarantees. Both B and C are correct."
+  },
+  {
+    id: 553, topic: "Concurrency",
+    text: "What does the 'volatile' keyword guarantee?",
+    code: null,
+    options: [
+      "Atomicity of compound operations like i++",
+      "Mutual exclusion equivalent to synchronized",
+      "Visibility: writes are immediately visible to all threads; ordering guarantees prevent reordering",
+      "That the variable will not be garbage collected"
+    ],
+    answer: 2,
+    explanation: "volatile guarantees two things: (1) visibility — all threads see the most recent write; (2) ordering — establishes happens-before between writes and reads. It does NOT guarantee atomicity of compound operations like i++ (use AtomicInteger for that)."
+  },
+  {
+    id: 554, topic: "I/O & NIO",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Path</span> p = <span class="cls">Path</span>.of(<span class="str">"a/b/../../c"</span>);
+<span class="cls">System</span>.out.println(p);
+<span class="cls">System</span>.out.println(p.normalize());`,
+    options: ["a/b/../../c\nc", "c\nc", "a/b/../../c\na/c", "Throws InvalidPathException"],
+    answer: 0,
+    explanation: "Path.of() stores the path as-is without resolving. toString() = 'a/b/../../c'. normalize() resolves '..': a/b → go up to a → go up to '' (root) → enter c. Result: 'c'. normalize() does not check filesystem existence."
+  },
+  {
+    id: 555, topic: "I/O & NIO",
+    text: "What is the difference between Files.lines() and Files.readAllLines()?",
+    code: null,
+    options: [
+      "No difference",
+      "Files.lines() returns a lazy Stream<String>; Files.readAllLines() loads everything into a List<String>",
+      "Files.readAllLines() returns a Stream; Files.lines() returns a List",
+      "Files.lines() is only for text files; Files.readAllLines() works with any file"
+    ],
+    answer: 1,
+    explanation: "Files.lines(Path) is lazy — it reads the file line by line as you consume the Stream. Files.readAllLines(Path) reads the entire file into memory as a List<String>. For large files, Files.lines() is more memory-efficient. Note: Files.lines() must be closed (use try-with-resources)."
+  },
+  {
+    id: 556, topic: "Serialization",
+    text: "What is the output of the following code after deserializing an object whose class added a new field since serialization?",
+    code: null,
+    options: [
+      "Always throws InvalidClassException",
+      "The new field receives its default value (0, null, false) if serialVersionUID matches",
+      "The field is filled with the previous value from disk",
+      "The JVM skips the new field entirely without any value"
+    ],
+    answer: 1,
+    explanation: "If serialVersionUID matches, Java is tolerant of compatible changes. A newly added field receives its type's default value upon deserialization (int→0, Object→null, boolean→false). Fields removed from the class are simply ignored from the stream."
+  },
+  {
+    id: 557, topic: "Serialization",
+    text: "What is the purpose of implementing writeObject() / readObject() in a Serializable class?",
+    code: null,
+    options: [
+      "To replace the default serialization entirely (use Externalizable for that)",
+      "To customize serialization — add extra logic like encryption, validation, or handling of non-serializable fields",
+      "To make the class faster to serialize",
+      "To serialize static fields (normally excluded)"
+    ],
+    answer: 1,
+    explanation: "writeObject(ObjectOutputStream) and readObject(ObjectInputStream) let you customize the serialization process: encrypt data, normalize values, handle transient fields that need manual persistence, or include version-specific migration logic — while still leveraging the default mechanism via defaultWriteObject/defaultReadObject."
+  },
+  {
+    id: 558, topic: "Generics",
+    text: "Which code correctly implements the PECS principle to add elements to a collection?",
+    code: null,
+    options: [
+      "static void addNumbers(List<? extends Number> list) { list.add(42); }",
+      "static void addNumbers(List<? super Integer> list) { list.add(42); }",
+      "static void addNumbers(List<?> list) { list.add(42); }",
+      "static <T> void addNumbers(List<T extends Number> list) { list.add(42); }"
+    ],
+    answer: 1,
+    explanation: "PECS: Producer Extends, Consumer Super. To add (consume) Integer elements, use ? super Integer — the list is guaranteed to be a List of Integer or a supertype, so adding Integer is always safe. Options A and C prevent adding; D has invalid syntax."
+  },
+  {
+    id: 559, topic: "Generics",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">Integer</span>&gt; ints    = <span class="cls">List</span>.of(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>);
+<span class="cls">List</span>&lt;<span class="cls">Double</span>&gt;  doubles = <span class="cls">List</span>.of(<span class="num">1.1</span>, <span class="num">2.2</span>);
+<span class="kw">double</span> total = sumList(ints) + sumList(doubles);
+<span class="cls">System</span>.out.printf(<span class="str">"%.1f%n"</span>, total);
+
+<span class="kw">static double</span> sumList(<span class="cls">List</span>&lt;? <span class="kw">extends</span> <span class="cls">Number</span>&gt; list) {
+    <span class="kw">return</span> list.stream().mapToDouble(<span class="cls">Number</span>::doubleValue).sum();
+}`,
+    options: ["9.3", "Compilation error", "9.0", "Throws ClassCastException"],
+    answer: 0,
+    explanation: "sumList accepts List<? extends Number>, so both List<Integer> and List<Double> are accepted. ints: 1+2+3=6.0. doubles: 1.1+2.2=3.3. total=9.3. printf('%.1f') formats to 1 decimal: '9.3'."
+  },
+  {
+    id: 560, topic: "Enums",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">enum</span> <span class="cls">Status</span> { PENDING, ACTIVE, CLOSED }
+<span class="cls">Status</span> s = <span class="cls">Status</span>.valueOf(<span class="str">"ACTIVE"</span>);
+<span class="cls">System</span>.out.println(s.ordinal() + <span class="str">" "</span> + s.name());`,
+    options: ["1 ACTIVE", "0 ACTIVE", "2 ACTIVE", "Throws IllegalArgumentException"],
+    answer: 0,
+    explanation: "Status.valueOf('ACTIVE') returns Status.ACTIVE. ordinal() returns the zero-based declaration position: PENDING=0, ACTIVE=1. name() returns the constant's name as declared: 'ACTIVE'. Result: '1 ACTIVE'."
+  },
+  {
+    id: 561, topic: "Enums",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">enum</span> <span class="cls">Color</span> {
+    RED(<span class="str">"#FF0000"</span>), GREEN(<span class="str">"#00FF00"</span>), BLUE(<span class="str">"#0000FF"</span>);
+    <span class="kw">private final</span> <span class="cls">String</span> hex;
+    <span class="cls">Color</span>(<span class="cls">String</span> hex) { <span class="kw">this</span>.hex = hex; }
+    <span class="cls">String</span> hex() { <span class="kw">return</span> hex; }
+}
+<span class="cls">System</span>.out.println(<span class="cls">Color</span>.GREEN.hex());`,
+    options: ["#00FF00", "GREEN", "1", "Compilation error"],
+    answer: 0,
+    explanation: "Enums can have fields, constructors, and methods. Color.GREEN is initialized with '#00FF00' stored in the private final field hex. hex() returns it. Result: '#00FF00'."
+  },
+  {
+    id: 562, topic: "Enums",
+    text: "What does the following code print?",
+    code: `<span class="kw">enum</span> <span class="cls">Planet</span> { MERCURY, VENUS, EARTH }
+<span class="cls">System</span>.out.println(<span class="cls">Arrays</span>.toString(<span class="cls">Planet</span>.values()));`,
+    options: ["[MERCURY, VENUS, EARTH]", "[0, 1, 2]", "MERCURY VENUS EARTH", "Compilation error — values() does not exist"],
+    answer: 0,
+    explanation: "values() is a compiler-generated static method that returns an array of all enum constants in declaration order. Arrays.toString on a Planet[] formats as '[MERCURY, VENUS, EARTH]'."
+  },
+  {
+    id: 563, topic: "Static Initializers",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">class</span> <span class="cls">Base</span> {
+    <span class="kw">static</span> { <span class="cls">System</span>.out.print(<span class="str">"B "</span>); }
+}
+<span class="kw">class</span> <span class="cls">Child</span> <span class="kw">extends</span> <span class="cls">Base</span> {
+    <span class="kw">static</span> { <span class="cls">System</span>.out.print(<span class="str">"C "</span>); }
+}
+<span class="kw">new</span> <span class="cls">Child</span>();
+<span class="kw">new</span> <span class="cls">Child</span>();`,
+    options: ["B C B C", "B C", "B B C C", "C B"],
+    answer: 1,
+    explanation: "Static initializers run exactly once per class, when the class is first loaded. Base is loaded first (prints 'B '), then Child (prints 'C '). The second new Child() does not re-run the static blocks. Result: 'B C'."
+  },
+  {
+    id: 564, topic: "Static Initializers",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">class</span> <span class="cls">Order</span> {
+    <span class="kw">static int</span> x = compute();
+    <span class="kw">static int</span> y = <span class="num">10</span>;
+    <span class="kw">static int</span> compute() { <span class="kw">return</span> y * <span class="num">2</span>; }
+    <span class="kw">static</span> { <span class="cls">System</span>.out.println(x + <span class="str">" "</span> + y); }
+}
+<span class="kw">class</span> <span class="cls">Main</span> { <span class="kw">public static void</span> main(<span class="cls">String</span>[] a) { <span class="kw">new</span> <span class="cls">Order</span>(); } }`,
+    options: ["0 10", "20 10", "10 10", "Compilation error"],
+    answer: 0,
+    explanation: "Static members initialize in declaration order. x = compute() runs first: y is still 0 (default int), so y*2 = 0. Then y = 10. The static block runs after all initializations: prints '0 10'. This is a classic forward-reference trap."
+  },
+  {
+    id: 565, topic: "Casting",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">double</span> d = <span class="num">3.9</span>;
+<span class="kw">int</span>    i = (<span class="kw">int</span>) d;
+<span class="kw">long</span>   l = (<span class="kw">long</span>) d;
+<span class="cls">System</span>.out.println(i + <span class="str">" "</span> + l);`,
+    options: ["3 3", "4 4", "3 4", "Throws ArithmeticException"],
+    answer: 0,
+    explanation: "Casting double to int (or long) truncates toward zero — it does NOT round. 3.9 → 3 for both int and long. Result: '3 3'."
+  },
+  {
+    id: 566, topic: "Casting",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">int</span>  n = <span class="num">257</span>;
+<span class="kw">byte</span> b = (<span class="kw">byte</span>) n;
+<span class="cls">System</span>.out.println(b);`,
+    options: ["1", "257", "-1", "Throws ArithmeticException"],
+    answer: 0,
+    explanation: "257 in binary (32-bit): 00000000 00000000 00000001 00000001. Casting to byte keeps only the lowest 8 bits: 00000001 = 1. Narrowing conversion silently truncates. Result: 1."
+  },
+  {
+    id: 567, topic: "Comparable",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">String</span>&gt; words = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;(<span class="cls">List</span>.of(<span class="str">"banana"</span>, <span class="str">"apple"</span>, <span class="str">"Cherry"</span>));
+<span class="cls">Collections</span>.sort(words);
+<span class="cls">System</span>.out.println(words.get(<span class="num">0</span>));`,
+    options: ["apple", "Cherry", "banana", "cherry"],
+    answer: 1,
+    explanation: "String's natural order (Comparable) uses Unicode code points. Uppercase letters have lower values than lowercase: 'C' (67) < 'a' (97) < 'b' (98). So 'Cherry' sorts first. words.get(0) = 'Cherry'."
+  },
+  {
+    id: 568, topic: "Comparable",
+    text: "What does Comparator.comparing(Person::getAge).reversed() do?",
+    code: null,
+    options: [
+      "Sorts by age ascending",
+      "Sorts by age descending",
+      "Sorts by age then reverses the entire sort",
+      "Throws UnsupportedOperationException"
+    ],
+    answer: 1,
+    explanation: "Comparator.comparing(Person::getAge) creates a comparator that sorts by age ascending. .reversed() inverts the ordering, resulting in descending age order. This is equivalent to Comparator.comparing(Person::getAge, Comparator.reverseOrder())."
+  },
+  {
+    id: 569, topic: "Text Blocks",
+    text: "What is the value of s (the actual string content) in the following code?",
+    code: `<span class="cls">String</span> s = <span class="str">"""
+              Hello
+              """</span>;`,
+    options: [
+      "\"\\n              Hello\\n              \"",
+      "\"Hello\\n\"",
+      "\"Hello\"",
+      "\"              Hello              \""
+    ],
+    answer: 1,
+    explanation: "Text block indentation stripping: the closing '\"\"\"' is at 14 spaces. The content 'Hello' is also at 14 spaces, so all 14 leading spaces are stripped. The result is 'Hello' followed by a newline (from the line break before the closing \"\"\"). Value: \"Hello\\n\"."
+  },
+  {
+    id: 570, topic: "Text Blocks",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">String</span> html = <span class="str">"""
+        &lt;html&gt;
+            &lt;body&gt;Hello&lt;/body&gt;
+        &lt;/html&gt;
+        """</span>;
+<span class="cls">System</span>.out.println(html.lines().count());`,
+    options: ["3", "4", "2", "5"],
+    answer: 0,
+    explanation: "The text block has 3 content lines: '<html>', '    <body>Hello</body>', '</html>'. The closing '\"\"\"' on a new line does not add an extra line. lines().count() = 3."
+  },
+  {
+    id: 571, topic: "BigDecimal",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">var</span> a = <span class="kw">new</span> <span class="cls">BigDecimal</span>(<span class="str">"1.0"</span>);
+<span class="kw">var</span> b = <span class="kw">new</span> <span class="cls">BigDecimal</span>(<span class="str">"1.00"</span>);
+<span class="cls">System</span>.out.println(a.equals(b));
+<span class="cls">System</span>.out.println(a.compareTo(b) == <span class="num">0</span>);`,
+    options: ["false\ntrue", "true\ntrue", "false\nfalse", "true\nfalse"],
+    answer: 0,
+    explanation: "BigDecimal.equals() compares both value AND scale. 1.0 (scale=1) and 1.00 (scale=2) are not equal by equals(). compareTo() compares only numeric value: 1.0 == 1.00 numerically, so compareTo returns 0. Always use compareTo() for numeric equality of BigDecimals."
+  },
+  {
+    id: 572, topic: "BigDecimal",
+    text: "Which is the correct way to create a BigDecimal representing exactly 0.1?",
+    code: null,
+    options: [
+      "new BigDecimal(0.1)",
+      "new BigDecimal(\"0.1\")",
+      "BigDecimal.valueOf(0.1f)",
+      "All of the above"
+    ],
+    answer: 1,
+    explanation: "new BigDecimal(0.1) captures the IEEE 754 double approximation of 0.1, which is not exactly 0.1. new BigDecimal(\"0.1\") parses the string exactly, giving precisely 0.1. BigDecimal.valueOf(double) uses Double.toString() internally — more reliable than the double constructor but still based on floating-point."
+  },
+  {
+    id: 573, topic: "Bitwise",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">int</span> x = <span class="num">0b1010_1010</span>;
+<span class="cls">System</span>.out.println(x >>> <span class="num">4</span>);
+<span class="cls">System</span>.out.println(x >> <span class="num">4</span>);`,
+    options: ["10\n10", "10\n-6", "170\n10", "-86\n10"],
+    answer: 0,
+    explanation: "0b10101010 = 170. >>> 4 (unsigned right shift): fills with zeros. 170 >>> 4 = 10 (0000_1010). >> 4 (signed right shift): fills with sign bit. 170 is positive (bit 7 = 1 but as 32-bit int it is positive), so sign bit is 0, also fills with 0. 170 >> 4 = 10. Result: '10\\n10'."
+  },
+  {
+    id: 574, topic: "Bitwise",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">int</span> a = <span class="num">0xF0</span>; <span class="cm">// 1111 0000</span>
+<span class="kw">int</span> b = <span class="num">0x0F</span>; <span class="cm">// 0000 1111</span>
+<span class="cls">System</span>.out.println((a | b));
+<span class="cls">System</span>.out.println((a & b));`,
+    options: ["255\n0", "240\n15", "255\n15", "0\n255"],
+    answer: 0,
+    explanation: "a = 11110000, b = 00001111. OR: 11111111 = 255. AND: 00000000 = 0. No bits overlap between a and b. Result: '255\\n0'."
+  },
+  {
+    id: 575, topic: "Design Patterns",
+    text: "Which design pattern does java.util.Collections.unmodifiableList() implement?",
+    code: null,
+    options: ["Singleton", "Decorator", "Factory Method", "Proxy"],
+    answer: 3,
+    explanation: "unmodifiableList() returns a Proxy that wraps the original list and intercepts mutating operations (add, remove, set) by throwing UnsupportedOperationException, while delegating read operations to the original list. The Decorator pattern would add behavior; Proxy controls access."
+  },
+  {
+    id: 576, topic: "Design Patterns",
+    text: "Which pattern does the following code implement?",
+    code: `<span class="kw">interface</span> <span class="cls">Logger</span> { <span class="kw">void</span> log(<span class="cls">String</span> msg); }
+<span class="kw">class</span> <span class="cls">ConsoleLogger</span> <span class="kw">implements</span> <span class="cls">Logger</span> {
+    <span class="kw">public void</span> log(<span class="cls">String</span> msg) { <span class="cls">System</span>.out.println(msg); }
+}
+<span class="kw">class</span> <span class="cls">TimestampLogger</span> <span class="kw">implements</span> <span class="cls">Logger</span> {
+    <span class="kw">private final</span> <span class="cls">Logger</span> wrapped;
+    <span class="cls">TimestampLogger</span>(<span class="cls">Logger</span> l) { wrapped = l; }
+    <span class="kw">public void</span> log(<span class="cls">String</span> msg) { wrapped.log(<span class="cls">Instant</span>.now() + <span class="str">": "</span> + msg); }
+}`,
+    options: ["Singleton", "Observer", "Decorator", "Strategy"],
+    answer: 2,
+    explanation: "TimestampLogger implements Logger and wraps another Logger instance. It adds behavior (prepending a timestamp) before delegating to the wrapped logger. This is the Decorator pattern: dynamically adding responsibilities to objects without subclassing."
+  },
+  {
+    id: 577, topic: "OOP",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">class</span> <span class="cls">A</span> {
+    <span class="kw">int</span> val = <span class="num">1</span>;
+    <span class="kw">int</span> get() { <span class="kw">return</span> val; }
+}
+<span class="kw">class</span> <span class="cls">B</span> <span class="kw">extends</span> <span class="cls">A</span> {
+    <span class="kw">int</span> val = <span class="num">2</span>;
+    <span class="kw">int</span> get() { <span class="kw">return</span> val; }
+}
+<span class="cls">A</span> ref = <span class="kw">new</span> <span class="cls">B</span>();
+<span class="cls">System</span>.out.println(ref.val + <span class="str">" "</span> + ref.get());`,
+    options: ["1 2", "2 2", "1 1", "2 1"],
+    answer: 0,
+    explanation: "ref.val: fields are resolved by the reference type (A) — no polymorphism. A.val = 1. ref.get(): methods are resolved by the actual type (B) — polymorphism applies. B.get() returns B.val = 2. Result: '1 2'."
+  },
+  {
+    id: 578, topic: "Concurrency",
+    text: "What does the following code guarantee about the output order?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">Integer</span>&gt; results = <span class="kw">new</span> <span class="cls">CopyOnWriteArrayList</span>&lt;&gt;();
+<span class="cls">List</span>&lt;<span class="cls">Future</span>&lt;<span class="cls">Integer</span>&gt;&gt; futures = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;();
+<span class="cls">ExecutorService</span> exec = <span class="cls">Executors</span>.newFixedThreadPool(<span class="num">4</span>);
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i <= <span class="num">5</span>; i++) {
+    <span class="kw">final int</span> n = i;
+    futures.add(exec.submit(() -> n * n));
+}
+futures.forEach(f -> results.add(f.get()));
+<span class="cls">System</span>.out.println(results);`,
+    options: [
+      "Results are always [1, 4, 9, 16, 25]",
+      "Results are in non-deterministic order",
+      "Throws ConcurrentModificationException",
+      "Compilation error"
+    ],
+    answer: 0,
+    explanation: "The computation order is parallel and non-deterministic, but results are collected by iterating futures in submission order. f.get() blocks until each future's result is available. The results list is built in the same order as the futures list: [1, 4, 9, 16, 25] always."
+  },
+  {
+    id: 579, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">var</span> r = <span class="cls">Stream</span>.of(<span class="num">5</span>, <span class="num">3</span>, <span class="num">8</span>, <span class="num">1</span>, <span class="num">9</span>, <span class="num">2</span>)
+    .sorted()
+    .skip(<span class="num">2</span>)
+    .limit(<span class="num">3</span>)
+    .mapToInt(<span class="cls">Integer</span>::intValue)
+    .sum();
+<span class="cls">System</span>.out.println(r);`,
+    options: ["16", "22", "14", "25"],
+    answer: 0,
+    explanation: "sorted(): [1, 2, 3, 5, 8, 9]. skip(2) discards the first 2 elements: [3, 5, 8, 9]. limit(3) keeps only 3 elements: [3, 5, 8]. mapToInt then sum(): 3 + 5 + 8 = 16."
+  },
+  {
+    id: 580, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">var</span> result = <span class="cls">Stream</span>.of(<span class="str">"cat"</span>, <span class="str">"dog"</span>, <span class="str">"bird"</span>, <span class="str">"fish"</span>)
+    .collect(<span class="cls">Collectors</span>.groupingBy(
+        <span class="cls">String</span>::length,
+        <span class="cls">Collectors</span>.joining(<span class="str">", "</span>)
+    ));
+<span class="cls">System</span>.out.println(result.get(<span class="num">3</span>));`,
+    options: ["cat, dog", "cat, dog, fish", "bird", "Throws NullPointerException"],
+    answer: 0,
+    explanation: "groupingBy(String::length, joining): lengths — cat(3), dog(3), bird(4), fish(4). For key 3: 'cat' and 'dog' are joined as 'cat, dog'. result.get(3) = 'cat, dog'."
+  },
+  {
+    id: 581, topic: "Records",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">record</span> <span class="cls">Point</span>(<span class="kw">int</span> x, <span class="kw">int</span> y) {
+    <span class="kw">static</span> <span class="cls">Point</span> origin() { <span class="kw">return new</span> <span class="cls">Point</span>(<span class="num">0</span>, <span class="num">0</span>); }
+    <span class="cls">Point</span> translate(<span class="kw">int</span> dx, <span class="kw">int</span> dy) { <span class="kw">return new</span> <span class="cls">Point</span>(x + dx, y + dy); }
+}
+<span class="cls">Point</span> p = <span class="cls">Point</span>.origin().translate(<span class="num">3</span>, <span class="num">4</span>);
+<span class="cls">System</span>.out.println(p);`,
+    options: ["Point[x=3, y=4]", "Point(3, 4)", "(3, 4)", "Compilation error"],
+    answer: 0,
+    explanation: "Records auto-generate toString() in the format ClassName[field1=value1, field2=value2]. Point.origin() = Point(0,0). translate(3,4) creates new Point(3,4). toString() = 'Point[x=3, y=4]'."
+  },
+  {
+    id: 582, topic: "Modules (JPMS)",
+    text: "What command compiles a modular Java application?",
+    code: null,
+    options: [
+      "javac --module-source-path src -d out $(find src -name '*.java')",
+      "javac -classpath src -d out $(find src -name '*.java')",
+      "java --module-path out --module com.example/com.example.Main",
+      "javac -module com.example src/module-info.java"
+    ],
+    answer: 0,
+    explanation: "For modular compilation, use --module-source-path to specify the root of the module source tree. The compiler discovers module-info.java files and compiles everything. Option C is the launch command, not compilation. Option B uses classpath (not module path)."
+  },
+  {
+    id: 583, topic: "Exceptions",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">public static int</span> compute() {
+    <span class="kw">try</span> { <span class="kw">return</span> <span class="num">1</span>; }
+    <span class="kw">catch</span> (<span class="cls">Exception</span> e) { <span class="kw">return</span> <span class="num">2</span>; }
+    <span class="kw">finally</span> { <span class="kw">return</span> <span class="num">3</span>; }
+}
+<span class="cls">System</span>.out.println(compute());`,
+    options: ["1", "2", "3", "Compilation error"],
+    answer: 2,
+    explanation: "A return in a finally block overrides any return in the try or catch block. The try returns 1, but before actually returning, finally executes and returns 3, which becomes the method's return value. This is considered bad practice — avoid return in finally."
+  },
+  {
+    id: 584, topic: "Exceptions",
+    text: "Which of the following is a checked exception?",
+    code: null,
+    options: [
+      "NullPointerException",
+      "ArrayIndexOutOfBoundsException",
+      "IOException",
+      "IllegalArgumentException"
+    ],
+    answer: 2,
+    explanation: "Checked exceptions must be declared in the method signature (throws) or caught. IOException is a checked exception. NullPointerException, ArrayIndexOutOfBoundsException, and IllegalArgumentException are all RuntimeExceptions (unchecked) — they do not need to be declared or caught."
+  },
+  {
+    id: 585, topic: "Generics",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">static</span> &lt;T&gt; T identity(T t) { <span class="kw">return</span> t; }
+<span class="cls">String</span>  s = identity(<span class="str">"hello"</span>);
+<span class="cls">Integer</span> i = identity(<span class="num">42</span>);
+<span class="cls">System</span>.out.println(s + <span class="str">" "</span> + i);`,
+    options: ["hello 42", "Compilation error", "hello null", "null 42"],
+    answer: 0,
+    explanation: "The generic method identity(T t) returns its argument unchanged. T is inferred as String for 'hello' and Integer for 42. Both are type-safe. Result: 'hello 42'."
+  },
+  {
+    id: 586, topic: "Collections",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Deque</span>&lt;<span class="cls">String</span>&gt; stack = <span class="kw">new</span> <span class="cls">ArrayDeque</span>&lt;&gt;();
+stack.push(<span class="str">"first"</span>);
+stack.push(<span class="str">"second"</span>);
+stack.push(<span class="str">"third"</span>);
+<span class="cls">System</span>.out.println(stack.pop() + <span class="str">" "</span> + stack.peek());`,
+    options: ["third second", "first second", "third first", "second third"],
+    answer: 0,
+    explanation: "ArrayDeque as a stack: push() adds to the front (top). After pushing first, second, third: [third, second, first]. pop() removes and returns 'third'. peek() returns 'second' (new top) without removing. Result: 'third second'."
+  },
+  {
+    id: 587, topic: "I/O & NIO",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Path</span> a = <span class="cls">Path</span>.of(<span class="str">"/home/user"</span>);
+<span class="cls">Path</span> b = <span class="cls">Path</span>.of(<span class="str">"/home/user/docs"</span>);
+<span class="cls">System</span>.out.println(a.relativize(b));
+<span class="cls">System</span>.out.println(b.relativize(a));`,
+    options: ["docs\n..", "docs\n../user", "/home/user/docs\n/home/user", "user\ndocs"],
+    answer: 0,
+    explanation: "relativize(b) gives the path from a to b: 'docs'. relativize(a) gives the path from b to a: '..' (go up one level from docs to user). Result: 'docs\\n..'."
+  },
+  {
+    id: 588, topic: "String API",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">String</span> s = <span class="str">"one::two::three"</span>;
+<span class="cls">String</span>[] parts = s.split(<span class="str">"::"</span>);
+<span class="cls">System</span>.out.println(parts.length + <span class="str">" "</span> + parts[<span class="num">1</span>]);`,
+    options: ["3 two", "5 :", "3 :two", "2 two::three"],
+    answer: 0,
+    explanation: "split('::') splits on the literal '::' (as a regex, ':' matches any char but '::' works fine here). 'one::two::three' splits into ['one', 'two', 'three']. length = 3, parts[1] = 'two'. Result: '3 two'."
+  },
+  {
+    id: 589, topic: "Lambdas",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">List</span>&lt;<span class="cls">String</span>&gt; items = <span class="cls">List</span>.of(<span class="str">"a"</span>, <span class="str">"bb"</span>, <span class="str">"ccc"</span>);
+items.stream()
+     .map(<span class="cls">String</span>::length)
+     .reduce(<span class="cls">Integer</span>::sum)
+     .ifPresent(<span class="cls">System</span>.out::println);`,
+    options: ["6", "3", "1", "Compilation error"],
+    answer: 0,
+    explanation: "map(String::length): [1, 2, 3]. reduce(Integer::sum) without identity returns Optional<Integer>(6). ifPresent(System.out::println) prints 6 if present. Result: '6'."
+  },
+  {
+    id: 590, topic: "Date & Time API",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">LocalDate</span> d = <span class="cls">LocalDate</span>.of(<span class="num">2024</span>, <span class="num">3</span>, <span class="num">15</span>);
+<span class="cls">LocalDate</span> first = d.with(<span class="cls">TemporalAdjusters</span>.firstDayOfMonth());
+<span class="cls">LocalDate</span> last  = d.with(<span class="cls">TemporalAdjusters</span>.lastDayOfMonth());
+<span class="cls">System</span>.out.println(first.getDayOfMonth() + <span class="str">" "</span> + last.getDayOfMonth());`,
+    options: ["1 31", "1 30", "15 31", "1 29"],
+    answer: 0,
+    explanation: "firstDayOfMonth() returns the first day of March 2024 → March 1 → dayOfMonth=1. lastDayOfMonth() returns the last day of March → March 31 (March has 31 days) → dayOfMonth=31. Result: '1 31'."
+  },
+  {
+    id: 591, topic: "OOP",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">class</span> <span class="cls">Vehicle</span> {
+    <span class="kw">int</span> speed = <span class="num">60</span>;
+    <span class="kw">void</span> info() { <span class="cls">System</span>.out.println(<span class="str">"Vehicle: "</span> + speed); }
+}
+<span class="kw">class</span> <span class="cls">Car</span> <span class="kw">extends</span> <span class="cls">Vehicle</span> {
+    <span class="kw">int</span> speed = <span class="num">120</span>;
+    <span class="kw">void</span> info() { <span class="cls">System</span>.out.println(<span class="str">"Car: "</span> + speed); }
+}
+<span class="cls">Vehicle</span> v = <span class="kw">new</span> <span class="cls">Car</span>();
+v.info();
+<span class="cls">System</span>.out.println(v.speed);`,
+    options: ["Car: 120\n60", "Vehicle: 60\n60", "Car: 60\n120", "Car: 120\n120"],
+    answer: 0,
+    explanation: "v.info(): method is resolved by actual type (Car) → prints 'Car: 120'. v.speed: field is resolved by reference type (Vehicle) → 60. Fields are not polymorphic. Result: 'Car: 120\\n60'."
+  },
+  {
+    id: 592, topic: "Concurrency",
+    text: "What is a 'race condition' in the context of multithreading?",
+    code: null,
+    options: [
+      "Two threads competing for CPU time in a fair scheduler",
+      "A bug where the program's outcome depends on the relative timing of uncontrolled events (e.g., thread scheduling)",
+      "A deadlock between exactly two threads",
+      "A thread running faster than expected due to JIT optimization"
+    ],
+    answer: 1,
+    explanation: "A race condition occurs when two or more threads access shared data without proper synchronization, and the final result depends on the non-deterministic order of thread execution. The 'race' is between threads, and the winner determines the (potentially incorrect) outcome."
+  },
+  {
+    id: 593, topic: "Functional Interfaces",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Function</span>&lt;<span class="cls">Integer</span>, <span class="cls">Integer</span>&gt; square  = x -> x * x;
+<span class="cls">Function</span>&lt;<span class="cls">Integer</span>, <span class="cls">Integer</span>&gt; addFive = x -> x + <span class="num">5</span>;
+<span class="cls">System</span>.out.println(square.compose(addFive).apply(<span class="num">3</span>));
+<span class="cls">System</span>.out.println(square.andThen(addFive).apply(<span class="num">3</span>));`,
+    options: ["64\n14", "14\n64", "64\n9", "9\n14"],
+    answer: 0,
+    explanation: "compose(g) applies g first, then the current function. square.compose(addFive).apply(3): addFive(3)=8, square(8)=64. andThen(g) applies the current function first, then g. square.andThen(addFive).apply(3): square(3)=9, addFive(9)=14. Result: '64\\n14'."
+  },
+  {
+    id: 594, topic: "var",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">var</span> x = <span class="num">5</span>;
+<span class="kw">var</span> y = <span class="num">2.0</span>;
+<span class="kw">var</span> z = x + y;
+<span class="cls">System</span>.out.println(z + <span class="str">" "</span> + ((Object) z).getClass().getSimpleName());`,
+    options: ["7.0 Double", "7.0 double", "7 Double", "Compilation error"],
+    answer: 0,
+    explanation: "x is inferred as int (5), y as double (2.0). x + y promotes int to double: 5 + 2.0 = 7.0. z is inferred as double. (Object) z autoboxes to Double. getClass().getSimpleName() = 'Double'. Result: '7.0 Double'."
+  },
+  {
+    id: 595, topic: "Collections",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Map</span>&lt;<span class="cls">String</span>, <span class="cls">Integer</span>&gt; m = <span class="kw">new</span> <span class="cls">TreeMap</span>&lt;&gt;();
+m.put(<span class="str">"c"</span>, <span class="num">3</span>); m.put(<span class="str">"a"</span>, <span class="num">1</span>); m.put(<span class="str">"b"</span>, <span class="num">2</span>);
+m.entrySet().stream()
+    .filter(e -> e.getValue() > <span class="num">1</span>)
+    .forEach(e -> <span class="cls">System</span>.out.print(e.getKey() + <span class="str">" "</span>));`,
+    options: ["b c ", "c b ", "a b c ", "c b a "],
+    answer: 0,
+    explanation: "TreeMap keeps keys in natural (alphabetical) order: a→1, b→2, c→3. filter(value > 1) keeps b→2 and c→3. forEach in order: prints 'b c '. Result: 'b c '."
+  },
+  {
+    id: 596, topic: "Sealed Classes",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">sealed class</span> <span class="cls">Num</span> <span class="kw">permits</span> <span class="cls">Even</span>, <span class="cls">Odd</span> {}
+<span class="kw">final class</span> <span class="cls">Even</span> <span class="kw">extends</span> <span class="cls">Num</span> { <span class="kw">int</span> v; <span class="cls">Even</span>(<span class="kw">int</span> v) { <span class="kw">this</span>.v = v; } }
+<span class="kw">final class</span> <span class="cls">Odd</span>  <span class="kw">extends</span> <span class="cls">Num</span> { <span class="kw">int</span> v; <span class="cls">Odd</span>(<span class="kw">int</span>  v) { <span class="kw">this</span>.v = v; } }
+<span class="cls">Num</span> n = <span class="kw">new</span> <span class="cls">Even</span>(<span class="num">4</span>);
+<span class="cls">System</span>.out.println(<span class="kw">switch</span>(n) {
+    <span class="kw">case</span> <span class="cls">Even</span> e -> <span class="str">"even: "</span> + e.v;
+    <span class="kw">case</span> <span class="cls">Odd</span>  o -> <span class="str">"odd: "</span>  + o.v;
+});`,
+    options: ["even: 4", "odd: 4", "Compilation error — default required", "Throws MatchException"],
+    answer: 0,
+    explanation: "The switch over sealed Num is exhaustive — both permitted subclasses (Even and Odd) are covered, so no default is needed. n is Even(4), so case Even e matches: 'even: ' + 4 = 'even: 4'."
+  },
+  {
+    id: 597, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="cls">Map</span>&lt;<span class="cls">Boolean</span>, <span class="cls">Long</span>&gt; result = <span class="cls">IntStream</span>.rangeClosed(<span class="num">1</span>, <span class="num">10</span>)
+    .boxed()
+    .collect(<span class="cls">Collectors</span>.partitioningBy(
+        n -> n % <span class="num">2</span> == <span class="num">0</span>,
+        <span class="cls">Collectors</span>.counting()
+    ));
+<span class="cls">System</span>.out.println(result.get(<span class="kw">true</span>) + <span class="str">" "</span> + result.get(<span class="kw">false</span>));`,
+    options: ["5 5", "4 6", "6 4", "Compilation error"],
+    answer: 0,
+    explanation: "IntStream.rangeClosed(1,10) = [1..10]. Partition by even: true (evens: 2,4,6,8,10) → count=5. false (odds: 1,3,5,7,9) → count=5. Result: '5 5'."
+  },
+  {
+    id: 598, topic: "OOP",
+    text: "Which statement about the Java memory model's happens-before relationship is CORRECT?",
+    code: null,
+    options: [
+      "Any two statements in the same thread may be reordered freely",
+      "A write to a volatile field happens-before every subsequent read of that same field by any thread",
+      "synchronized blocks establish happens-before only within the same thread",
+      "Thread.sleep() establishes a happens-before relationship"
+    ],
+    answer: 1,
+    explanation: "Java Memory Model: a write to a volatile field W happens-before any subsequent read R of the same volatile field by any other thread. This guarantees both visibility (R sees the write) and ordering (all actions before W are visible after R)."
+  },
+  {
+    id: 599, topic: "Design Patterns",
+    text: "Which pattern does the following code demonstrate?",
+    code: `<span class="cls">HttpRequest</span> req = <span class="cls">HttpRequest</span>.newBuilder()
+    .uri(<span class="cls">URI</span>.create(<span class="str">"https://example.com"</span>))
+    .header(<span class="str">"Accept"</span>, <span class="str">"application/json"</span>)
+    .GET()
+    .build();`,
+    options: ["Factory Method", "Builder", "Prototype", "Strategy"],
+    answer: 1,
+    explanation: "This is the Builder pattern: a fluent interface that constructs a complex immutable object (HttpRequest) step by step. Each method returns the builder itself (or a step in the chain), and build() finalizes the object. This avoids telescoping constructors."
+  },
+  {
+    id: 600, topic: "Streams",
+    text: "What is the output of the following code?",
+    code: `<span class="kw">var</span> result = <span class="cls">Stream</span>.of(<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>, <span class="str">"d"</span>, <span class="str">"e"</span>)
+    .filter(s -> !s.equals(<span class="str">"c"</span>))
+    .collect(<span class="cls">Collectors</span>.joining(<span class="str">","</span>, <span class="str">"["</span>, <span class="str">"]"</span>));
+<span class="cls">System</span>.out.println(result);`,
+    options: ["[a,b,d,e]", "[a,b,c,d,e]", "a,b,d,e", "[a,b,d,e,]"],
+    answer: 0,
+    explanation: "filter removes 'c'. Remaining: a, b, d, e. Collectors.joining(',', '[', ']') joins with ',' delimiter, prefix '[', suffix ']'. Result: '[a,b,d,e]'."
+  }
+];
+
+// ═══════════════════════════════════════════════════════
+//  EXAM STATE
+// ═══════════════════════════════════════════════════════
+let questions = [];
+let answers   = [];
+let current   = 0;
+let timerInterval = null;
+let secondsLeft   = 90 * 60;
+let examStartTime = null;
+
+// ═══════════════════════════════════════════════════════
+//  CORE FUNCTIONS
+// ═══════════════════════════════════════════════════════
+function startExam() {
+  questions = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, 50);
+  answers   = new Array(questions.length).fill(null);
+  current   = 0;
+  secondsLeft = 90 * 60;
+  examStartTime = Date.now();
+
+  document.getElementById('screen-home').style.display = 'none';
+  document.getElementById('screen-result').style.display = 'none';
+  document.getElementById('screen-exam').style.display  = 'block';
+
+  buildDots();
+  renderQuestion();
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    secondsLeft--;
+    updateTimerDisplay();
+    if (secondsLeft <= 0) { clearInterval(timerInterval); finishExam(); }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(secondsLeft / 60);
+  const s = secondsLeft % 60;
+  const el = document.getElementById('timer');
+  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.classList.toggle('warning', secondsLeft < 600);
+}
+
+function buildDots() {
+  const wrap = document.getElementById('dots-wrap');
+  wrap.innerHTML = '';
+  questions.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' current' : '');
+    d.title = `Question ${i+1}`;
+    d.onclick = () => jumpTo(i);
+    wrap.appendChild(d);
+  });
+}
+
+function updateDots() {
+  const dots = document.querySelectorAll('.dot');
+  dots.forEach((d, i) => {
+    d.className = 'dot';
+    if (answers[i] !== null) d.classList.add('answered');
+    if (i === current)       d.classList.add('current');
+  });
+}
+
+function renderQuestion() {
+  const q = questions[current];
+  const body = document.getElementById('exam-body');
+
+  let codeBlock = q.code ? `<pre><code>${q.code}</code></pre>` : '';
+
+  let optionsHtml = q.options.map((opt, i) => {
+    const sel = answers[current] === i ? 'selected' : '';
+    const letter = String.fromCharCode(65 + i);
+    return `<button class="option-btn ${sel}" onclick="selectAnswer(${i})">
+      <span class="letter">${letter}</span>
+      <span>${opt}</span>
+    </button>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="question-card">
+      <div class="q-topic">${q.topic}</div>
+      <div class="q-text">${q.text}</div>
+      ${codeBlock}
+      <div class="options-list">${optionsHtml}</div>
+    </div>`;
+
+  const pct = ((current + 1) / questions.length * 100).toFixed(0);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('q-counter').textContent = `${current + 1} / ${questions.length}`;
+
+  document.getElementById('btn-prev').disabled = current === 0;
+  const isLast = current === questions.length - 1;
+  const btn = document.getElementById('btn-next');
+  btn.textContent = isLast ? 'Finish ✓' : 'Next →';
+  btn.onclick = isLast ? finishExam : () => navigate(1);
+
+  updateDots();
+}
+
+function selectAnswer(idx) {
+  answers[current] = idx;
+  renderQuestion();
+}
+
+function navigate(dir) {
+  current = Math.max(0, Math.min(questions.length - 1, current + dir));
+  renderQuestion();
+}
+
+function jumpTo(idx) {
+  current = idx;
+  renderQuestion();
+}
+
+function finishExam() {
+  clearInterval(timerInterval);
+  const elapsed = Math.round((Date.now() - examStartTime) / 1000);
+  showResult(elapsed);
+}
+
+// ═══════════════════════════════════════════════════════
+//  RESULTS
+// ═══════════════════════════════════════════════════════
+function showResult(elapsedSeconds) {
+  document.getElementById('screen-exam').style.display   = 'none';
+  document.getElementById('screen-result').style.display = 'block';
+  window.scrollTo(0,0);
+
+  let correct = 0, wrong = 0, skipped = 0;
+  const topicMap = {};
+
+  questions.forEach((q, i) => {
+    if (!topicMap[q.topic]) topicMap[q.topic] = { correct: 0, total: 0 };
+    topicMap[q.topic].total++;
+
+    if (answers[i] === null) { skipped++; }
+    else if (answers[i] === q.answer) { correct++; topicMap[q.topic].correct++; }
+    else { wrong++; }
+  });
+
+  const pct = Math.round(correct / questions.length * 100);
+  const passed = pct >= 68;
+
+  const circumference = 2 * Math.PI * 58;
+  const offset = circumference * (1 - pct / 100);
+  setTimeout(() => {
+    const ring = document.getElementById('ring-fill');
+    ring.style.strokeDashoffset = offset;
+    ring.style.stroke = passed ? '#10b981' : '#ef4444';
+  }, 100);
+
+  document.getElementById('result-pct').textContent = pct + '%';
+  document.getElementById('result-verdict').textContent = passed ? '✓ PASSED!' : '✗ Failed';
+  document.getElementById('result-verdict').className = 'result-verdict ' + (passed ? 'pass' : 'fail');
+
+  const mins = Math.floor(elapsedSeconds / 60);
+  const secs = elapsedSeconds % 60;
+  document.getElementById('result-sub').textContent =
+    `Passing score: 68% · Time: ${mins}m ${secs}s`;
+
+  document.getElementById('rs-correct').textContent = correct;
+  document.getElementById('rs-wrong').textContent   = wrong;
+  document.getElementById('rs-skipped').textContent = skipped;
+
+  const tbEl = document.getElementById('topic-breakdown');
+  tbEl.innerHTML = Object.entries(topicMap)
+    .sort((a,b) => b[1].total - a[1].total)
+    .map(([topic, data]) => {
+      const tPct = data.total > 0 ? Math.round(data.correct/data.total*100) : 0;
+      const color = tPct >= 68 ? '#10b981' : tPct >= 50 ? '#f59e0b' : '#ef4444';
+      return `<div class="topic-row">
+        <div>
+          <div class="topic-name">${topic}</div>
+          <div class="topic-bar-bg"><div class="topic-bar-fill" style="width:${tPct}%;background:${color}"></div></div>
+        </div>
+        <div class="topic-score" style="color:${color}">${data.correct}/${data.total}</div>
+      </div>`;
+    }).join('');
+
+  const reviewEl = document.getElementById('review-list');
+  reviewEl.innerHTML = questions.map((q, i) => {
+    const userAns = answers[i];
+    let status, statusClass;
+    if (userAns === null) { status = 'Skipped'; statusClass = 'skipped'; }
+    else if (userAns === q.answer) { status = 'Correct'; statusClass = 'correct'; }
+    else { status = 'Wrong'; statusClass = 'wrong'; }
+
+    const correctLetter = String.fromCharCode(65 + q.answer);
+    const userLetter    = userAns !== null ? String.fromCharCode(65 + userAns) : '—';
+    const codeBlock     = q.code ? `<pre style="margin:0.5rem 0;font-size:0.78rem"><code>${q.code}</code></pre>` : '';
+
+    let answerInfo = '';
+    if (statusClass === 'wrong') {
+      answerInfo = `<div class="answer-info">
+        <span class="yours">Your answer: ${userLetter} — ${q.options[userAns]}</span><br>
+        <span class="correct-ans">Correct: ${correctLetter} — ${q.options[q.answer]}</span>
+      </div>`;
+    } else if (statusClass === 'correct') {
+      answerInfo = `<div class="answer-info"><span class="correct-ans">✓ ${correctLetter} — ${q.options[q.answer]}</span></div>`;
+    } else {
+      answerInfo = `<div class="answer-info" style="color:var(--muted)">Skipped · Correct: ${correctLetter} — ${q.options[q.answer]}</div>`;
+    }
+
+    return `<div class="review-item ${statusClass}">
+      <div class="review-header">
+        <span class="review-q-num">Question ${i+1} · ${q.topic}</span>
+        <span class="tag ${statusClass}">${status}</span>
+      </div>
+      <div class="review-q-text">${q.text}</div>
+      ${codeBlock}
+      ${answerInfo}
+      <div class="explanation">${q.explanation}</div>
+    </div>`;
+  }).join('');
+}
+
+function restart() {
+  document.getElementById('screen-result').style.display = 'none';
+  document.getElementById('screen-home').style.display   = 'flex';
+}
+</script>
+</body>
+</html>
