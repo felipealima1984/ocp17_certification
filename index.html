@@ -660,6 +660,37 @@
   }
   .theme-toggle .icon { font-size: 1rem; line-height: 1; }
 
+
+  /* ── PDF Study Guide link ── */
+  .pdf-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1.25rem;
+    padding: 10px 22px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pdf-link:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(59,130,246,0.07);
+    transform: translateY(-1px);
+  }
+  .pdf-link .pdf-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -700,6 +731,15 @@
   <button class="btn-start" id="btn-start" onclick="startExam()" disabled style="opacity:0.5;cursor:not-allowed;">
     Loading…
   </button>
+
+  <a class="pdf-link"
+     href="https://github.com/felipealima1984/ocp17_certification/blob/main/PDF/Java%20SE%2017%20Developer%20(Exam%201Z0-829)%20Programmer_s%20Guide.pdf"
+     target="_blank"
+     rel="noopener noreferrer"
+     title="Open the official OCP 17 Study Guide (PDF)">
+    <span class="pdf-icon">📄</span>
+    Official Study Guide — OCP 17 PDF
+  </a>
 </div>
 
 <!-- EXAM SCREEN -->
