@@ -1521,9 +1521,10 @@ async function loadAllPacks() {
         statusEl.textContent = `Loaded ${loaded} pack${loaded > 1 ? 's' : ''} · ${ALL_QUESTIONS.length} questions total`;
       }
     } catch (err) {
-      // Network error (e.g. file:// local) or parse error — stop silently
-      console.warn(`Pack ${url} not loaded:`, err.message || err);
-      break;
+      // Parse/eval error — skip this pack, continue to next
+      console.warn(`Pack ${url} skipped:`, err.message || err);
+      packNum++;
+      continue;
     }
 
     packNum++;
