@@ -28,22 +28,24 @@
 
   /* ── Light theme ── */
   :root.light {
-    --bg: #f8fafc;
+    --bg: #f0f4f8;
     --surface: #ffffff;
-    --surface2: #f1f5f9;
-    --border: #cbd5e1;
-    --accent: #d97706;
-    --accent2: #2563eb;
-    --green: #059669;
-    --red: #dc2626;
-    --text: #1e293b;
-    --muted: #64748b;
-    --code-bg: #f1f5f9;
+    --surface2: #e8eef5;
+    --border: #c1cfe0;
+    --accent: #b45309;
+    --accent2: #1d4ed8;
+    --green: #047857;
+    --red: #b91c1c;
+    --yellow: #92400e;
+    --text: #0f172a;
+    --muted: #475569;
+    --code-bg: #1e2433;
+    --code-border: #2d3748;
     --radius: 10px;
-    --header-bg: rgba(248,250,252,0.95);
-    --footer-bg: rgba(248,250,252,0.97);
-    --grid-line: rgba(37,99,235,0.05);
-    --shadow: 0 12px 32px rgba(217,119,6,0.25);
+    --header-bg: rgba(240,244,248,0.96);
+    --footer-bg: rgba(240,244,248,0.98);
+    --grid-line: rgba(29,78,216,0.05);
+    --shadow: 0 12px 32px rgba(180,83,9,0.2);
   }
 
   /* smooth transitions when toggling */
@@ -286,12 +288,13 @@
 
   pre {
     background: var(--code-bg);
-    border: 1px solid var(--border);
+    border: 1px solid var(--code-border, var(--border));
     border-radius: 8px;
     padding: 1.25rem 1.5rem;
     margin: 1rem 0 1.5rem;
     overflow-x: auto;
     position: relative;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
   }
 
   pre::before {
@@ -308,15 +311,16 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.88rem;
     line-height: 1.7;
-    color: #e2e8f0;
+    color: #cdd6f4; /* base token color — works on dark code-bg in both themes */
   }
 
-  .kw { color: #c792ea; }
-  .str { color: #c3e88d; }
-  .num { color: #f78c6c; }
-  .cm { color: #546e7a; font-style: italic; }
-  .cls { color: #82aaff; }
-  .ann { color: #ffcb6b; }
+  /* Syntax colors — Catppuccin-inspired, vivid on dark code-bg (used in both themes) */
+  .kw  { color: #cba6f7; font-weight: 600; }   /* keyword   — mauve    */
+  .str { color: #a6e3a1; }                       /* string    — green    */
+  .num { color: #fab387; }                       /* number    — peach    */
+  .cm  { color: #6c7086; font-style: italic; }  /* comment   — overlay1 */
+  .cls { color: #89b4fa; }                       /* class     — blue     */
+  .ann { color: #f9e2af; }                       /* annotation— yellow   */
 
   .options-list {
     display: flex;
@@ -691,6 +695,264 @@
     line-height: 1;
   }
 
+
+  /* ── ENHANCED TIMER ── */
+  .timer-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 120px;
+  }
+  .timer-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 6px;
+    min-width: 72px;
+    text-align: center;
+    transition: color .3s, border-color .3s;
+  }
+  .timer.warning { color: var(--red); border-color: rgba(239,68,68,0.5); animation: pulse-red 1s ease-in-out infinite; }
+  @keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .timer-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .timer-bar-bg {
+    width: 120px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .timer-bar-fill {
+    height: 100%;
+    background: var(--accent2);
+    border-radius: 2px;
+    transition: width 1s linear, background .5s;
+  }
+
+  /* ── UNANSWERED REVIEW SCREEN ── */
+  #screen-unanswered {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .unanswered-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 540px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,.4);
+  }
+  .unanswered-modal h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+    color: var(--text);
+  }
+  .unanswered-modal p {
+    font-size: .85rem;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .unanswered-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: .5rem;
+    margin-bottom: 1.5rem;
+  }
+  .unanswered-btn {
+    background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.35);
+    color: var(--red);
+    border-radius: 8px;
+    padding: .5rem .25rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+    text-align: center;
+  }
+  .unanswered-btn:hover {
+    background: rgba(239,68,68,.22);
+    transform: translateY(-1px);
+  }
+  .modal-actions {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+  .modal-btn {
+    flex: 1;
+    padding: .75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: .9rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .modal-btn:hover { border-color: var(--muted); background: var(--surface); }
+  .modal-btn.danger {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+  }
+  .modal-btn.danger:hover { opacity: .88; }
+
+  /* ── ELAPSED TIME IN RESULT ── */
+  .time-split {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: .5rem 0 1rem;
+  }
+  .time-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .4rem .9rem;
+    text-align: center;
+  }
+  .time-chip .tv { font-size: 1rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+  .time-chip .tl { font-size: .6rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .06em; }
+
+
+  /* ── Light theme component overrides ── */
+  :root.light .question-card {
+    background: #ffffff;
+    border-color: #c1cfe0;
+    box-shadow: 0 2px 16px rgba(15,23,42,0.07);
+  }
+  :root.light .q-topic {
+    background: rgba(29,78,216,0.08);
+    color: #1d4ed8;
+    border-color: rgba(29,78,216,0.2);
+  }
+  :root.light .option-btn {
+    background: #f8fafc;
+    border-color: #c1cfe0;
+    color: #0f172a;
+  }
+  :root.light .option-btn:hover:not(:disabled) {
+    background: rgba(29,78,216,0.06);
+    border-color: #1d4ed8;
+  }
+  :root.light .option-btn.selected {
+    background: rgba(29,78,216,0.1);
+    border-color: #1d4ed8;
+    color: #1e3a8a;
+  }
+  :root.light .option-btn .letter {
+    background: #e2e8f0;
+    border-color: #c1cfe0;
+    color: #334155;
+  }
+  :root.light .option-btn.correct-reveal {
+    background: rgba(4,120,87,0.1);
+    border-color: #047857;
+  }
+  :root.light .option-btn.wrong-reveal {
+    background: rgba(185,28,28,0.08);
+    border-color: #b91c1c;
+  }
+  :root.light .exam-header {
+    background: rgba(240,244,248,0.96);
+    border-color: #c1cfe0;
+  }
+  :root.light .timer {
+    background: #ffffff;
+    border-color: #c1cfe0;
+    color: #0f172a;
+  }
+  :root.light .timer.warning {
+    color: #b91c1c;
+    border-color: rgba(185,28,28,0.4);
+    background: rgba(185,28,28,0.04);
+  }
+  :root.light .dots-wrap .dot {
+    background: #c1cfe0;
+  }
+  :root.light .dots-wrap .dot.answered {
+    background: #1d4ed8;
+  }
+  :root.light .dots-wrap .dot.current {
+    background: #b45309;
+  }
+  :root.light .nav-btn {
+    background: #f1f5f9;
+    border-color: #c1cfe0;
+    color: #0f172a;
+  }
+  :root.light .nav-btn.primary {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+  }
+  :root.light .review-item {
+    background: #ffffff;
+    border-color: #e2e8f0;
+  }
+  :root.light .explanation {
+    background: rgba(29,78,216,0.05);
+    border-color: rgba(29,78,216,0.15);
+    color: #334155;
+  }
+  :root.light .unanswered-modal {
+    background: #ffffff;
+    border-color: #c1cfe0;
+    box-shadow: 0 24px 64px rgba(15,23,42,0.2);
+  }
+  :root.light pre::before {
+    color: #94a3b8;
+    background: rgba(30,36,51,0.0);
+  }
+  :root.light .timer-bar-bg {
+    background: #c1cfe0;
+  }
+  :root.light .stat-card {
+    background: #ffffff;
+    border-color: #c1cfe0;
+  }
+  :root.light .topic-row {
+    background: #ffffff;
+    border-color: #e2e8f0;
+  }
+  :root.light .section-title {
+    border-color: #c1cfe0;
+    color: #475569;
+  }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -750,7 +1012,21 @@
       <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
     </div>
     <span class="q-counter" id="q-counter">1 / 50</span>
-    <div class="timer" id="timer">90:00</div>
+    <div class="timer-wrap">
+      <div class="timer-row">
+        <div>
+          <div class="timer" id="timer-remaining">90:00</div>
+          <div class="timer-label">remaining</div>
+        </div>
+        <div>
+          <div class="timer" id="timer-elapsed">00:00</div>
+          <div class="timer-label">elapsed</div>
+        </div>
+      </div>
+      <div class="timer-bar-bg">
+        <div class="timer-bar-fill" id="timer-bar" style="width:100%"></div>
+      </div>
+    </div>
   </div>
 
   <div class="exam-body" id="exam-body"></div>
@@ -759,6 +1035,19 @@
     <button class="nav-btn" id="btn-prev" onclick="navigate(-1)" disabled>← Previous</button>
     <div class="dots-wrap" id="dots-wrap"></div>
     <button class="nav-btn primary" id="btn-next" onclick="navigate(1)">Next →</button>
+  </div>
+</div>
+
+<!-- UNANSWERED REVIEW MODAL -->
+<div id="screen-unanswered" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:1rem;">
+  <div class="unanswered-modal">
+    <h3>⚠ Unanswered Questions</h3>
+    <p id="unanswered-count">You have X questions without an answer.</p>
+    <div class="unanswered-grid" id="unanswered-grid"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeUnansweredModal()">← Go back and answer</button>
+      <button class="modal-btn danger" onclick="confirmFinish()">Submit anyway →</button>
+    </div>
   </div>
 </div>
 
@@ -780,6 +1069,11 @@
     </div>
     <div class="result-verdict" id="result-verdict"></div>
     <p style="color:var(--muted);font-size:0.9rem;margin-top:0.25rem;" id="result-sub"></p>
+  <div class="time-split">
+    <div class="time-chip"><div class="tv" id="res-elapsed">—</div><div class="tl">Time used</div></div>
+    <div class="time-chip"><div class="tv" id="res-remaining">—</div><div class="tl">Time left</div></div>
+    <div class="time-chip"><div class="tv" id="res-pace">—</div><div class="tl">Avg / question</div></div>
+  </div>
   </div>
 
   <div class="result-stats">
@@ -1565,16 +1859,20 @@ let examStartTime = null;
 // ═══════════════════════════════════════════════════════
 //  CORE FUNCTIONS
 // ═══════════════════════════════════════════════════════
+let totalExamSeconds = 90 * 60; // track for % calc in timer bar
+
 function startExam() {
   questions = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, 50);
   answers   = new Array(questions.length).fill(null);
   current   = 0;
-  secondsLeft = 90 * 60;
-  examStartTime = Date.now();
+  secondsLeft    = 90 * 60;
+  totalExamSeconds = 90 * 60;
+  examStartTime  = Date.now();
 
-  document.getElementById('screen-home').style.display = 'none';
-  document.getElementById('screen-result').style.display = 'none';
-  document.getElementById('screen-exam').style.display  = 'block';
+  document.getElementById('screen-home').style.display        = 'none';
+  document.getElementById('screen-result').style.display      = 'none';
+  document.getElementById('screen-unanswered').style.display  = 'none';
+  document.getElementById('screen-exam').style.display        = 'block';
 
   buildDots();
   renderQuestion();
@@ -1586,16 +1884,39 @@ function startTimer() {
   timerInterval = setInterval(() => {
     secondsLeft--;
     updateTimerDisplay();
-    if (secondsLeft <= 0) { clearInterval(timerInterval); finishExam(); }
+    if (secondsLeft <= 0) { clearInterval(timerInterval); doFinish(); }
   }, 1000);
 }
 
+function fmt(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
 function updateTimerDisplay() {
-  const m = Math.floor(secondsLeft / 60);
-  const s = secondsLeft % 60;
-  const el = document.getElementById('timer');
-  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  el.classList.toggle('warning', secondsLeft < 600);
+  const elapsed = totalExamSeconds - secondsLeft;
+
+  // Remaining
+  const remEl = document.getElementById('timer-remaining');
+  if (remEl) {
+    remEl.textContent = fmt(secondsLeft);
+    remEl.classList.toggle('warning', secondsLeft < 600);
+  }
+
+  // Elapsed
+  const elEl = document.getElementById('timer-elapsed');
+  if (elEl) elEl.textContent = fmt(elapsed);
+
+  // Bar (remaining %)
+  const bar = document.getElementById('timer-bar');
+  if (bar) {
+    const pct = (secondsLeft / totalExamSeconds) * 100;
+    bar.style.width = pct + '%';
+    bar.style.background =
+      pct > 50 ? 'var(--accent2)' :
+      pct > 20 ? 'var(--yellow)' : 'var(--red)';
+  }
 }
 
 function buildDots() {
@@ -1671,15 +1992,56 @@ function jumpTo(idx) {
 }
 
 function finishExam() {
+  // Check for unanswered questions
+  const unanswered = answers.reduce((acc, a, i) => { if (a === null) acc.push(i); return acc; }, []);
+
+  if (unanswered.length > 0) {
+    showUnansweredModal(unanswered);
+    return;
+  }
+  doFinish();
+}
+
+function showUnansweredModal(unanswered) {
+  const overlay = document.getElementById('screen-unanswered');
+  const grid    = document.getElementById('unanswered-grid');
+  const countEl = document.getElementById('unanswered-count');
+
+  countEl.textContent = `You have ${unanswered.length} question${unanswered.length > 1 ? 's' : ''} without an answer.`;
+
+  grid.innerHTML = unanswered.map(i =>
+    `<button class="unanswered-btn" onclick="goToUnanswered(${i})">Q${i + 1}</button>`
+  ).join('');
+
+  overlay.style.display = 'flex';
+}
+
+function goToUnanswered(idx) {
+  document.getElementById('screen-unanswered').style.display = 'none';
+  current = idx;
+  renderQuestion();
+}
+
+function closeUnansweredModal() {
+  document.getElementById('screen-unanswered').style.display = 'none';
+}
+
+function confirmFinish() {
+  document.getElementById('screen-unanswered').style.display = 'none';
+  doFinish();
+}
+
+function doFinish() {
   clearInterval(timerInterval);
-  const elapsed = Math.round((Date.now() - examStartTime) / 1000);
-  showResult(elapsed);
+  const elapsed   = Math.round((Date.now() - examStartTime) / 1000);
+  const remaining = secondsLeft;
+  showResult(elapsed, remaining);
 }
 
 // ═══════════════════════════════════════════════════════
 //  RESULTS
 // ═══════════════════════════════════════════════════════
-function showResult(elapsedSeconds) {
+function showResult(elapsedSeconds, remainingSeconds) {
   document.getElementById('screen-exam').style.display   = 'none';
   document.getElementById('screen-result').style.display = 'block';
   window.scrollTo(0,0);
@@ -1713,8 +2075,15 @@ function showResult(elapsedSeconds) {
 
   const mins = Math.floor(elapsedSeconds / 60);
   const secs = elapsedSeconds % 60;
-  document.getElementById('result-sub').textContent =
-    `Passing score: 68% · Time: ${mins}m ${secs}s`;
+  document.getElementById('result-sub').textContent = 'Passing score: 68%';
+
+  // Time chips
+  document.getElementById('res-elapsed').textContent   = `${mins}m ${secs}s`;
+  const remM = Math.floor((remainingSeconds || 0) / 60);
+  const remS = (remainingSeconds || 0) % 60;
+  document.getElementById('res-remaining').textContent = `${remM}m ${remS}s`;
+  const avgSecs = questions.length > 0 ? Math.round(elapsedSeconds / questions.length) : 0;
+  document.getElementById('res-pace').textContent      = `${avgSecs}s`;
 
   document.getElementById('rs-correct').textContent = correct;
   document.getElementById('rs-wrong').textContent   = wrong;
